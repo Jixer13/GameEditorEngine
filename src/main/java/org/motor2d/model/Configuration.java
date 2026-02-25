@@ -1,6 +1,5 @@
 package org.motor2d.model;
 
-//Ventana
 public class Configuration {
     private String title;
     private int windowWidth;
@@ -8,7 +7,7 @@ public class Configuration {
     private boolean fullScreen;
     private int fps;
 
-    // Constructor por defecto
+    // Default
     public Configuration() {
         this.title = "New Project";
         this.windowWidth = 1280;
@@ -17,7 +16,6 @@ public class Configuration {
         this.fps = 60;
     }
 
-    // Constructor personalizado
     public Configuration(String title, int windowWidth, int windowHeight, boolean fullScreen, int fps) {
         this.title = title;
         this.windowWidth = windowWidth;

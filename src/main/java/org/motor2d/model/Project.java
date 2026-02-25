@@ -6,7 +6,13 @@ public class Project {
     private String initialScene;
     private Configuration configuration;
 
+
+    //default
     public Project() {
+        this.name = "New Project";
+        this.version = "1.0";
+        this.initialScene = "scenes/main.json";
+        this.configuration = new Configuration();
     }
 
     public Project(String name, String version, String initialScene, Configuration configuration) {
