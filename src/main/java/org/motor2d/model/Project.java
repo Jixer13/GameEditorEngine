@@ -1,15 +1,15 @@
 package org.motor2d.model;
 
-public class Proyect {
+public class Project {
     private String name;
     private String version;
     private String initialScene;
     private Configuration configuration;
 
-    public Proyect() {
+    public Project() {
     }
 
-    public Proyect(String name, String version, String initialScene, Configuration configuration) {
+    public Project(String name, String version, String initialScene, Configuration configuration) {
         this.name = name;
         this.version = version;
         this.initialScene = initialScene;
