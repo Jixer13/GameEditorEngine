@@ -1,7 +1,5 @@
 package org.motor2d.model;
 
-import org.motor2d.utilities.Color;
-
 import java.util.ArrayList;
 
 public class Scene {

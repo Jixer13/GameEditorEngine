@@ -1,6 +1,6 @@
 package org.motor2d.editor;
 
-import org.motor2d.utilidades.Color;
+import org.motor2d.utilities.Color;
 
 import javax.swing.*;
 import java.awt.*;
