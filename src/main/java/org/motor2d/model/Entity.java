@@ -1,9 +1,9 @@
 package org.motor2d.model;
 
-import org.motor2d.model.components.Transform;
+import org.motor2d.model.components.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Entity {
 
@@ -15,155 +15,58 @@ public class Entity {
     private String name;
     private String tag;
 
-    // Transform (posición, rotación, escala)
-    private Transform transform;
-
-    // Visual
-    private String sprite;
-    private boolean visible;
-    private int layer;
-
     // Estado
     private boolean active;
 
-    // Propiedades personalizadas
-    private Map<String, Object> properties;
-
-
+    // Lista de componentes
+    private List<Component> components;
 
     public Entity() {
         this.id = nextId++;
         this.name = "Entity";
         this.tag = "";
-        this.transform = new Transform();
-        this.sprite = null;
-        this.visible = true;
-        this.layer = 0;
         this.active = true;
-        this.properties = new HashMap<>();
+        this.components = new ArrayList<>();
     }
 
-    public Entity(String name, String tag) {
-        this();
-        this.name = name;
-        this.tag = tag;
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getTag() { return tag; }
+    public void setTag(String tag) { this.tag = tag; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public List<Component> getComponents() { return components; }
+    public void setComponents(List<Component> components) { this.components = components; }
+
+
+    // Métodos auxiliares---
+    public void addComponent(Component component) {
+        component.setOwner(this); // le decimos al componente quién es su dueño
+        components.add(component);
     }
 
-    // ==================== MÉTODOS ESTÁTICOS PARA ID ====================
-
-    public static void setNextId(int id) {
-        nextId = id;
-    }
-
-    public static int getNextId() {
-        return nextId;
-    }
-
-    // ==================== GETTERS Y SETTERS ====================
-
-    public int getId() {
-        return id;
-    }
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
-
-    public Transform getTransform() {
-        return transform;
-    }
-    public void setTransform(Transform transform) {
-        this.transform = transform;
-    }
-
-    public String getSprite() {
-        return sprite;
-    }
-    public void setSprite(String sprite) {
-        this.sprite = sprite;
-    }
-
-    public boolean isVisible() {
-        return visible;
-    }
-    public void setVisible(boolean visible) {
-        this.visible = visible;
-    }
-
-    public int getLayer() {
-        return layer;
-    }
-    public void setLayer(int layer) {
-        this.layer = layer;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public Map<String, Object> getProperties() {
-        return properties;
-    }
-    public void setProperties(Map<String, Object> properties) {
-        this.properties = properties;
-    }
-
-    // ==================== MÉTODOS HELPER PARA PROPERTIES ====================
-
-    public void setProperty(String key, Object value) {
-        properties.put(key, value);
-    }
-    public Object getProperty(String key) {
-        return properties.get(key);
-    }
-    public int getPropertyInt(String key, int defaultValue) {
-        Object value = properties.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+    public <T extends Component> T getComponent(Class<T> type) {
+        for (Component component : components) {
+            if (type.isInstance(component)) {
+                return type.cast(component);
+            }
         }
-        return defaultValue;
+        return null; // si no tiene ese componente devuelve null
     }
-    public float getPropertyFloat(String key, float defaultValue) {
-        Object value = properties.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).floatValue();
-        }
-        return defaultValue;
+
+    public <T extends Component> void removeComponent(Class<T> type) {
+        components.removeIf(component -> type.isInstance(component));
     }
-    public String getPropertyString(String key, String defaultValue) {
-        Object value = properties.get(key);
-        if (value instanceof String) {
-            return (String) value;
-        }
-        return defaultValue;
+
+    public <T extends Component> boolean hasComponent(Class<T> type) {
+        return getComponent(type) != null;
     }
-    public boolean getPropertyBool(String key, boolean defaultValue) {
-        Object value = properties.get(key);
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-        return defaultValue;
-    }
-    public boolean hasProperty(String key) {
-        return properties.containsKey(key);
-    }
-    public void removeProperty(String key) {
-        properties.remove(key);
-    }
+
+
 }

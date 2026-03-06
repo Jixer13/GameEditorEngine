@@ -1,6 +1,6 @@
 package org.motor2d.model.components;
 
-public class Transform {
+public class Transform extends Component {
 
     private float x;
     private float y;
@@ -9,68 +9,27 @@ public class Transform {
     private float rotation;
 
     public Transform() {
+        super();          // llama al constructor de Component
         this.x = 0;
         this.y = 0;
-        this.rotation = 0;
-        this.scaleX = 1;
+        this.scaleX = 1; // escala 1 = tamaño normal
         this.scaleY = 1;
-
+        this.rotation = 0;
     }
 
-    public Transform(float x, float y) {
-        this();  // Llama al constructor vacío primero (pone los valores por defecto)
-        this.x = x;
-        this.y = y;
-    }
+    // Getters y Setters
+    public float getX() { return x; }
+    public void setX(float x) { this.x = x; }
 
-    public float getX() {
-        return x;
-    }
+    public float getY() { return y; }
+    public void setY(float y) { this.y = y; }
 
-    public void setX(float x) {
-        this.x = x;
-    }
+    public float getScaleX() { return scaleX; }
+    public void setScaleX(float scaleX) { this.scaleX = scaleX; }
 
-    public float getY() {
-        return y;
-    }
+    public float getScaleY() { return scaleY; }
+    public void setScaleY(float scaleY) { this.scaleY = scaleY; }
 
-    public void setY(float y) {
-        this.y = y;
-    }
-
-    public float getScaleX() {
-        return scaleX;
-    }
-
-    public void setScaleX(float scaleX) {
-        this.scaleX = scaleX;
-    }
-
-    public float getScaleY() {
-        return scaleY;
-    }
-
-    public void setScaleY(float scaleY) {
-        this.scaleY = scaleY;
-    }
-
-    public float getRotation() {
-        return rotation;
-    }
-
-    public void setRotation(float rotation) {
-        this.rotation = rotation;
-    }
-
-    // Métodos útiles
-    public void move(float dx, float dy) {
-        this.x += dx;
-        this.y += dy;
-    }
-
-    public void moveTo(float x, float y) {
-        this.x = x;
-        this.y = y;
-    }
+    public float getRotation() { return rotation; }
+    public void setRotation(float rotation) { this.rotation = rotation; }
 }
