@@ -1,13 +1,16 @@
 package org.motor2d.model;
 
+import org.motor2d.model.ui.UIElement;
+
 import java.util.ArrayList;
+import java.util.List;
 
 public class Scene {
     private String name;
-    private ArrayList<Entity> entities;
-    private ArrayList<UIElement> uiElements;
+    private List<Entity> entities;
+    private List<UIElement> uiElements;
     private Tilemap tilemap;
-    private ArrayList<Audio> backgroundMusic;
+    private List<Audio> backgroundMusic;
     private String backgroundColor;
     private int width;
     private int height;
@@ -45,7 +48,7 @@ public class Scene {
         this.name = name;
     }
 
-    public ArrayList<Entity> getEntities() {
+    public List<Entity> getEntities() {
         return entities;
     }
 
@@ -53,7 +56,7 @@ public class Scene {
         this.entities = entities;
     }
 
-    public ArrayList<UIElement> getUiElements() {
+    public List<UIElement> getUiElements() {
         return uiElements;
     }
 
@@ -69,7 +72,7 @@ public class Scene {
         this.tilemap = tilemap;
     }
 
-    public ArrayList<Audio> getBackgroundMusic() {
+    public List<Audio> getBackgroundMusic() {
         return backgroundMusic;
     }
 

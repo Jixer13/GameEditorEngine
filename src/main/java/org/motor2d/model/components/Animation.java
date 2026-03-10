@@ -14,7 +14,7 @@ public class Animation extends Component {
         super();
         this.name = "animation";
         this.frames = new ArrayList<>();
-        this.frameDuration = 0.1f; // 10 frames por segundo/ pero quizas es mejor 0.4 que son 25 por segundo, revisamos
+        this.frameDuration = 0.1f; // 10 frames por segundo/ pero quizas es mejor 0.04 que son 25 por segundo, revisamos
         this.looping = true;
     }
 

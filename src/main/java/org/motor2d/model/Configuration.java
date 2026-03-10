@@ -28,7 +28,7 @@ public class Configuration {
         return title;
     }
 
-    public void setTutle(String tutle) {
+    public void setTitle(String tutle) {
         this.title = tutle;
     }
 

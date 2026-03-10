@@ -8,7 +8,7 @@ import java.util.List;
 public class Entity {
 
     // Contador estático para IDs únicos
-    private static int nextId = 1;
+    private static int nextId = 0;
 
     // Identificación
     private int id;
@@ -30,7 +30,16 @@ public class Entity {
     }
 
     public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+
+    public static void resetIdCounter(int value){
+        nextId = value;
+    }
+    public void setId(int id) {
+        this.id = id;
+        if (id >= nextId) {
+            nextId = id + 1;
+        }
+    }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
