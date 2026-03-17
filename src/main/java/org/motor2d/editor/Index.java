@@ -76,6 +76,7 @@ public class Index extends JFrame {
         JButton btnConfig = crearBoton(ICON_CONFIG);
         JButton btnSalir = crearBoton(ICON_EXIT);
 
+        btnProyecto.addActionListener(e -> abrirEditor()); // ← NUEVO
         btnSalir.addActionListener(e -> System.exit(0));
 
         contenedor.add(btnProyecto);
@@ -84,6 +85,12 @@ public class Index extends JFrame {
 
         contenedor.setBounds(0, BUTTON_CONTAINER_Y, WINDOW_WIDTH, 100);
         padre.add(contenedor);
+    }
+
+
+    private void abrirEditor() {
+        dispose();
+        new Editor();
     }
 
     private JButton crearBoton(String rutaIcono) {

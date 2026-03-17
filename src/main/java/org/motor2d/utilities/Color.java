@@ -22,7 +22,11 @@ public class Color {
     /** Color del botón al presionar */
     public static final java.awt.Color BUTTON_PRESSED = new java.awt.Color(40, 40, 40);
 
-    // ====================  ====================
+    /* */
+    public static final java.awt.Color BORDER_COLOR = new java.awt.Color(80, 80, 80);
 
+    public static final java.awt.Color CANVAS_COLOR = new java.awt.Color(40, 40, 40);
+
+    public static final java.awt.Color CLOSE_HOVER  = new java.awt.Color(212, 31, 31);
 
 }
