@@ -1,4 +1,4 @@
-package org.motor2d.manager;
+package org.motor2d.core;
 
 public class InputManager {
 }
