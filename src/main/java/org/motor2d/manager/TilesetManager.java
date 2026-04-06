@@ -2,6 +2,7 @@ package org.motor2d.manager;
 
 import org.motor2d.model.Tile;
 import org.motor2d.model.Tilemap;
+import org.motor2d.model.components.TilemapLayer;
 import org.motor2d.model.Tileset;
 
 import java.io.IOException;
@@ -17,12 +18,12 @@ public class TilesetManager {
         this.sceneManager = sceneManager;
     }
 
-    // nivel proyecto
+    // TILESET — nivel proyecto
+
     public Tileset createTileset(String name, String imagePath,
                                  int tileWidth, int tileHeight) throws IOException {
         checkProjectOpen();
 
-        // No permitir nombres duplicados
         if (projectManager.getCurrentProject().getTilesetByName(name) != null) {
             throw new IOException("Ya existe un tileset con el nombre: " + name);
         }
@@ -44,7 +45,7 @@ public class TilesetManager {
 
         Tileset tileset = getTilesetByName(name);
         if (tileset == null) {
-            throw new IOException("No se encontró el tileset: " + name);
+            throw new IOException("No se encontro el tileset: " + name);
         }
 
         projectManager.getCurrentProject().removeTileset(tileset);
@@ -61,7 +62,8 @@ public class TilesetManager {
         return projectManager.getCurrentProject().getTilesets();
     }
 
-    // dentro de un tileset
+    // TILES — dentro de un tileset
+
     public Tile addTile(Tileset tileset, String tileName,
                         String spritePath, boolean solid) throws IOException {
         checkProjectOpen();
@@ -87,19 +89,14 @@ public class TilesetManager {
         return tileset.getTileById(id);
     }
 
+    // TILEMAP — nivel escena
 
-    //nivel escena
-    // Inicializa el tilemap de la escena actual
     public Tilemap createTilemap(int cols, int rows,
                                  int tileWidth, int tileHeight) throws IOException {
         checkProjectOpen();
         checkSceneOpen();
 
-        Tilemap tilemap = new Tilemap();
-        tilemap.setCols(cols);
-        tilemap.setRows(rows);
-        tilemap.setTileWidth(tileWidth);
-        tilemap.setTileHeight(tileHeight);
+        Tilemap tilemap = new Tilemap(cols, rows, tileWidth, tileHeight);
 
         sceneManager.getCurrentScene().setTilemap(tilemap);
         sceneManager.saveScene();
@@ -107,64 +104,102 @@ public class TilesetManager {
         return tilemap;
     }
 
-    // Elimina el tilemap de la escena actual
     public void removeTilemap() throws IOException {
         checkSceneOpen();
         sceneManager.getCurrentScene().setTilemap(null);
         sceneManager.saveScene();
     }
 
-    // Pintar un tile en una posición de la cuadrícula
-    public void paintTile(int col, int row, int tileId) throws IOException {
+    // PINTAR — con capa especifica
+
+    public void paintTile(int col, int row, int tileId,
+                          TilemapLayer.LayerType layer) throws IOException {
         checkSceneOpen();
         checkTilemapExists();
-        sceneManager.getCurrentScene().getTilemap().placeTile(col, row, tileId);
+        sceneManager.getCurrentScene().getTilemap()
+                .placeTile(col, row, tileId, layer);
         sceneManager.saveScene();
     }
 
-    // Pintar usando coordenadas en píxeles (viene del click del editor)
+    // PINTAR — en MIDGROUND por defecto
+
+    public void paintTile(int col, int row, int tileId) throws IOException {
+        paintTile(col, row, tileId, TilemapLayer.LayerType.MIDGROUND);
+    }
+
+    public void paintTileAtPixel(float pixelX, float pixelY, int tileId,
+                                 TilemapLayer.LayerType layer) throws IOException {
+        checkSceneOpen();
+        checkTilemapExists();
+        Tilemap tilemap = sceneManager.getCurrentScene().getTilemap();
+        tilemap.placeTile(tilemap.pixelToCol(pixelX),
+                tilemap.pixelToRow(pixelY), tileId, layer);
+        sceneManager.saveScene();
+    }
+
     public void paintTileAtPixel(float pixelX, float pixelY,
                                  int tileId) throws IOException {
+        paintTileAtPixel(pixelX, pixelY, tileId, TilemapLayer.LayerType.MIDGROUND);
+    }
+
+    // BORRAR — con capa especifica
+
+    public void eraseTile(int col, int row,
+                          TilemapLayer.LayerType layer) throws IOException {
         checkSceneOpen();
         checkTilemapExists();
-
-        Tilemap tilemap = sceneManager.getCurrentScene().getTilemap();
-        int col = tilemap.pixelToCol(pixelX);
-        int row = tilemap.pixelToRow(pixelY);
-
-        tilemap.placeTile(col, row, tileId);
+        sceneManager.getCurrentScene().getTilemap().eraseTile(col, row, layer);
         sceneManager.saveScene();
     }
 
-    // Borrar tile en una posición
+    // BORRAR — en MIDGROUND por defecto
+
     public void eraseTile(int col, int row) throws IOException {
-        checkSceneOpen();
-        checkTilemapExists();
-        sceneManager.getCurrentScene().getTilemap().eraseTile(col, row);
-        sceneManager.saveScene();
+        eraseTile(col, row, TilemapLayer.LayerType.MIDGROUND);
     }
 
-    // Borrar tile usando coordenadas en píxeles
-    public void eraseTileAtPixel(float pixelX, float pixelY) throws IOException {
+    public void eraseTileAtPixel(float pixelX, float pixelY,
+                                 TilemapLayer.LayerType layer) throws IOException {
         checkSceneOpen();
         checkTilemapExists();
-
         Tilemap tilemap = sceneManager.getCurrentScene().getTilemap();
-        int col = tilemap.pixelToCol(pixelX);
-        int row = tilemap.pixelToRow(pixelY);
-
-        tilemap.eraseTile(col, row);
+        tilemap.eraseTile(tilemap.pixelToCol(pixelX),
+                tilemap.pixelToRow(pixelY), layer);
         sceneManager.saveScene();
     }
 
-    // Obtener el id del tile en una posición
-    public Integer getTileIdAt(int col, int row) throws IOException {
-        checkSceneOpen();
-        checkTilemapExists();
-        return sceneManager.getCurrentScene().getTilemap().getTileIdAt(col, row);
+    public void eraseTileAtPixel(float pixelX, float pixelY) throws IOException {
+        eraseTileAtPixel(pixelX, pixelY, TilemapLayer.LayerType.MIDGROUND);
     }
 
-    // Limpiar todo el tilemap
+    // CONSULTAR
+
+    public Integer getTileIdAt(int col, int row,
+                               TilemapLayer.LayerType layer) throws IOException {
+        checkSceneOpen();
+        checkTilemapExists();
+        return sceneManager.getCurrentScene().getTilemap()
+                .getTileIdAt(col, row, layer);
+    }
+
+    public Integer getTileIdAt(int col, int row) throws IOException {
+        return getTileIdAt(col, row, TilemapLayer.LayerType.MIDGROUND);
+    }
+
+    public Tilemap getCurrentTilemap() throws IOException {
+        checkSceneOpen();
+        return sceneManager.getCurrentScene().getTilemap();
+    }
+
+    // LIMPIAR
+
+    public void clearLayer(TilemapLayer.LayerType layer) throws IOException {
+        checkSceneOpen();
+        checkTilemapExists();
+        sceneManager.getCurrentScene().getTilemap().clearLayer(layer);
+        sceneManager.saveScene();
+    }
+
     public void clearTilemap() throws IOException {
         checkSceneOpen();
         checkTilemapExists();
@@ -172,13 +207,8 @@ public class TilesetManager {
         sceneManager.saveScene();
     }
 
-    // Obtener el tilemap de la escena actual
-    public Tilemap getCurrentTilemap() throws IOException {
-        checkSceneOpen();
-        return sceneManager.getCurrentScene().getTilemap();
-    }
+    // Privados
 
-    // Métodos privados de apoyo
     private void checkProjectOpen() throws IOException {
         if (!projectManager.isProjectOpen()) {
             throw new IOException("No hay ningun proyecto abierto");

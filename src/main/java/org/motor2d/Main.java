@@ -1,13 +1,13 @@
 package org.motor2d;
 
-import org.motor2d.manager.EntityManager;
-import org.motor2d.manager.ProjectManager;
-import org.motor2d.manager.SceneManager;
-import org.motor2d.manager.TilesetManager;
+import org.motor2d.manager.*;
 import org.motor2d.model.*;
 import org.motor2d.model.components.Collider;
+import org.motor2d.model.components.TilemapLayer;
 import org.motor2d.model.components.Transform;
 import org.motor2d.model.ui.UILabel;
+import org.motor2d.utilities.GameColor;
+import org.motor2d.utilities.Vector2;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +22,8 @@ public class Main {
             testSceneManager();
             testEntityManager();
             testTilesetManager();
+            testResourceManager();
+            testUtilities();
         } catch (Exception e) {
             System.err.println("ERROR inesperado: " + e.getMessage());
             e.printStackTrace();
@@ -357,10 +359,11 @@ public class Main {
                 tm.getTileIdAt(0, 0));
 
         // 10. Limpiar tilemap
-        tm.clearTilemap();
-        System.out.println("OK - Tilemap limpiado");
-        System.out.println("   Tiles restantes: " +
-                tm.getCurrentTilemap().getTileGrid().size());
+        int totalTiles =
+                tilemap.getLayer(TilemapLayer.LayerType.BACKGROUND).getTileGrid().size() +
+                        tilemap.getLayer(TilemapLayer.LayerType.MIDGROUND).getTileGrid().size() +
+                        tilemap.getLayer(TilemapLayer.LayerType.FOREGROUND).getTileGrid().size();
+        System.out.println("   Tiles restantes en todas las capas: " + totalTiles);
 
         // 11. Intentar pintar sin tilemap
         tm.removeTilemap();
@@ -380,5 +383,115 @@ public class Main {
         // Limpiar
         deleteDirectory(new File(path));
         System.out.println("OK - Carpeta temporal limpiada");
+    }
+    private static void testResourceManager() throws Exception {
+        System.out.println("\n=== TEST RESOURCE MANAGER ===");
+
+        ProjectManager pm = new ProjectManager();
+        ResourceManager rm = new ResourceManager(pm);
+        String path = Files.createTempDirectory("motor2d-test").toString();
+        pm.createProject("Test", path);
+
+        // 1. Crear archivos de prueba temporales para importar
+        File tempSprite = File.createTempFile("player", ".png");
+        File tempAudio  = File.createTempFile("music",  ".mp3");
+        File tempFont   = File.createTempFile("font",   ".ttf");
+        System.out.println("OK - Archivos temporales creados");
+
+        // 2. Importar recursos
+        String spritePath = rm.importResource(
+                tempSprite.getAbsolutePath(), ResourceManager.ResourceType.SPRITE);
+        System.out.println("OK - Sprite importado: " + spritePath);
+
+        String audioPath = rm.importResource(
+                tempAudio.getAbsolutePath(), ResourceManager.ResourceType.AUDIO);
+        System.out.println("OK - Audio importado: " + audioPath);
+
+        String fontPath = rm.importResource(
+                tempFont.getAbsolutePath(), ResourceManager.ResourceType.FONT);
+        System.out.println("OK - Fuente importada: " + fontPath);
+
+        // 3. Listar recursos
+        System.out.println("OK - Sprites: " + rm.listSprites());
+        System.out.println("OK - Audios: "  + rm.listAudio());
+        System.out.println("OK - Fuentes: " + rm.listFonts());
+
+        // 4. Listar por tipo
+        System.out.println("OK - Por tipo SPRITE: " +
+                rm.listByType(ResourceManager.ResourceType.SPRITE));
+
+        // 5. Validar que existe
+        System.out.println("OK - Sprite existe: " + rm.resourceExists(spritePath));
+        System.out.println("OK - Ruta falsa existe: " +
+                rm.resourceExists("assets/sprites/noexiste.png"));
+
+        // 6. Extension invalida
+        try {
+            File tempInvalid = File.createTempFile("test", ".txt");
+            rm.importResource(tempInvalid.getAbsolutePath(),
+                    ResourceManager.ResourceType.SPRITE);
+            System.out.println("FALLO - Deberia haber fallado");
+            tempInvalid.delete();
+        } catch (IOException e) {
+            System.out.println("OK - Correcto, extension invalida: " + e.getMessage());
+        }
+
+        // 7. Eliminar recurso
+        rm.deleteResource(spritePath);
+        System.out.println("OK - Sprite eliminado");
+        System.out.println("   Sprite existe: " + rm.resourceExists(spritePath));
+
+        // Limpiar
+        tempSprite.delete();
+        tempAudio.delete();
+        tempFont.delete();
+        deleteDirectory(new File(path));
+        System.out.println("OK - Carpeta temporal limpiada");
+    }
+    private static void testUtilities() {
+        System.out.println("\n=== TEST UTILITIES ===");
+
+        // VECTOR2
+        System.out.println("-- Vector2 --");
+        Vector2 a = new Vector2(3, 4);
+        Vector2 b = new Vector2(1, 2);
+
+        System.out.println("OK - Vector a: "          + a);
+        System.out.println("OK - Vector b: "          + b);
+        System.out.println("OK - Suma: "              + a.add(b));
+        System.out.println("OK - Resta: "             + a.subtract(b));
+        System.out.println("OK - Escala x2: "         + a.scale(2));
+        System.out.println("OK - Magnitud: "          + a.magnitude());
+        System.out.println("OK - Normalizado: "       + a.normalize());
+        System.out.println("OK - Distancia a-b: "     + a.distanceTo(b));
+        System.out.println("OK - Dot product: "       + a.dot(b));
+        System.out.println("OK - Lerp t=0.5: "        + a.lerp(b, 0.5f));
+        System.out.println("OK - Angulo: "            + a.angle());
+        System.out.println("OK - Rotado 90 grados: "  + a.rotate(90));
+        System.out.println("OK - Zero: "              + Vector2.zero());
+        System.out.println("OK - Up: "                + Vector2.up());
+        System.out.println("OK - Down: "              + Vector2.down());
+        System.out.println("OK - Left: "              + Vector2.left());
+        System.out.println("OK - Right: "             + Vector2.right());
+        System.out.println("OK - Equals: "            + a.equals(new Vector2(3, 4)));
+        System.out.println("OK - Not equals: "        + a.equals(b));
+
+        // GAMECOLOR
+        System.out.println("\n-- GameColor --");
+        GameColor red  = GameColor.red();
+        GameColor blue = GameColor.blue();
+
+        System.out.println("OK - Rojo: "              + red);
+        System.out.println("OK - Hex: "               + red.toHex());
+        System.out.println("OK - Hex con alpha: "     + red.toHexWithAlpha());
+        System.out.println("OK - Desde hex #FF5733: " + GameColor.fromHex("#FF5733"));
+        System.out.println("OK - Mezcla t=0.5: "      + red.mix(blue, 0.5f));
+        System.out.println("OK - Con alpha 128: "     + red.withAlpha(128));
+        System.out.println("OK - R float: "           + red.getRf());
+        System.out.println("OK - AWT Color: "         + red.toAwtColor());
+        System.out.println("OK - Desde AWT: "         +
+                GameColor.fromAwtColor(java.awt.Color.GREEN));
+        System.out.println("OK - Equals: "            + GameColor.red().equals(GameColor.red()));
+        System.out.println("OK - Not equals: "        + red.equals(blue));
     }
 }
