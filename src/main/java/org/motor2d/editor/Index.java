@@ -50,7 +50,6 @@ public class Index extends JFrame {
     private void aplicarRedondeoVentana() {
         setShape(new RoundRectangle2D.Double(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_RADIUS, WINDOW_RADIUS));
 
-        // APLICAR REDONDEO AL ACTUALIZAR EL REDIMENSIONAMIENTO //
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
@@ -76,7 +75,7 @@ public class Index extends JFrame {
         JButton btnConfig = crearBoton(ICON_CONFIG);
         JButton btnSalir = crearBoton(ICON_EXIT);
 
-        btnProyecto.addActionListener(e -> abrirEditor()); // ← NUEVO
+        btnProyecto.addActionListener(e -> abrirEditor());
         btnSalir.addActionListener(e -> System.exit(0));
 
         contenedor.add(btnProyecto);
@@ -87,10 +86,9 @@ public class Index extends JFrame {
         padre.add(contenedor);
     }
 
-
     private void abrirEditor() {
-        dispose();
-        new Editor();
+        dispose();      // cierra el Index
+        new Editor();   // abre el Editor
     }
 
     private JButton crearBoton(String rutaIcono) {
