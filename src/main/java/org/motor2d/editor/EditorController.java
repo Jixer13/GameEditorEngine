@@ -1,7 +1,7 @@
 package org.motor2d.editor;
 
 import org.motor2d.graphics.Camara;
-import org.motor2d.graphics.Renderer;
+//import org.motor2d.graphics.Renderer;
 import org.motor2d.graphics.Sprite;
 import org.motor2d.manager.*;
 import org.motor2d.model.Entity;
@@ -27,7 +27,7 @@ public class EditorController {
     private final TilesetManager tilesetManager;
     private final ResourceManager resourceManager;
 
-    private Renderer renderer;
+   // private Renderer renderer;
     private Camara camara;
 
     // Para previsualización de audio en el editor
@@ -88,7 +88,7 @@ public class EditorController {
             sceneManager.closeScene();
             projectManager.closeProject();
             Sprite.clearCache();
-            renderer = null;
+            //renderer = null;
             camara   = null;
             return true;
         } catch (Exception e) {
@@ -575,11 +575,11 @@ public class EditorController {
 
     // RENDER
 
-    public void render(java.awt.Graphics2D g2) {
-        if (renderer == null || !isSceneOpen()) return;
-        List<Tileset> tilesets = projectManager.getCurrentProject().getTilesets();
-        renderer.render(g2, sceneManager.getCurrentScene(), tilesets);
-    }
+//    public void render(java.awt.Graphics2D g2) {
+//        if (renderer == null || !isSceneOpen()) return;
+//        List<Tileset> tilesets = projectManager.getCurrentProject().getTilesets();
+//        renderer.render(g2, sceneManager.getCurrentScene(), tilesets);
+//    }
 
     public void updateViewportSize(int width, int height) {
         if (camara != null) {
@@ -615,7 +615,7 @@ public class EditorController {
     public EntityManager   getEntityManager()   { return entityManager;   }
     public TilesetManager  getTilesetManager()  { return tilesetManager;  }
     public ResourceManager getResourceManager() { return resourceManager; }
-    public Renderer        getRenderer()        { return renderer;        }
+    //public Renderer        getRenderer()        { return renderer;        }
     public Camara          getCamara()          { return camara;          }
 
     // PRIVADOS
@@ -626,7 +626,7 @@ public class EditorController {
         int h = projectManager.getCurrentProject()
                 .getConfiguration().getWindowHeight();
         camara   = new Camara(w, h);
-        renderer = new Renderer(camara, path);
+        //renderer = new Renderer(camara, path);
     }
 
     private void mostrarError(String titulo, String mensaje) {
