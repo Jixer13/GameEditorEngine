@@ -1,4 +1,121 @@
 package org.motor2d.editor;
 
-public class Toolbar {
+import org.motor2d.utilities.Color;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+/**
+ * Barra de título personalizada del editor.
+ * Gestiona los botones de minimizar, maximizar y cerrar,
+ * así como el arrastre de la ventana.
+ */
+public class Toolbar extends JPanel {
+
+    // ==================== CONSTANTES ====================
+    private static final int MENUBAR_ALTO = 35;
+    private static final int BTN_ANCHO    = 40;
+    private static final int BTN_ALTO     = 22;
+
+    // ==================== ESTADO ====================
+    private boolean btnCerrarHover    = false;
+    private boolean btnMaximizarHover = false;
+    private boolean btnMinimizarHover = false;
+
+    // ==================== REFERENCIAS ====================
+    private final Editor editor;
+
+    // ==================== CONSTRUCTOR ====================
+    public Toolbar(Editor editor) {
+        this.editor = editor;
+        setOpaque(false);
+        setLayout(null);
+    }
+
+    // ==================== BOUNDS DE BOTONES ====================
+    public Rectangle btnMinBounds() {
+        int x = getX() + getWidth() - BTN_ANCHO * 3 - 6;
+        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
+    }
+
+    public Rectangle btnMaxBounds() {
+        int x = getX() + getWidth() - BTN_ANCHO * 2 - 6;
+        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
+    }
+
+    public Rectangle btnCerrarBounds() {
+        int x = getX() + getWidth() - BTN_ANCHO - 6;
+        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
+    }
+
+    // ==================== ACTUALIZAR HOVER ====================
+    public void actualizarHover(Point p) {
+        boolean dentroCerrar = btnCerrarBounds().contains(p);
+        boolean dentroMax    = btnMaxBounds().contains(p);
+        boolean dentroMin    = btnMinBounds().contains(p);
+
+        if (dentroCerrar != btnCerrarHover ||
+            dentroMax    != btnMaximizarHover ||
+            dentroMin    != btnMinimizarHover) {
+            btnCerrarHover    = dentroCerrar;
+            btnMaximizarHover = dentroMax;
+            btnMinimizarHover = dentroMin;
+            editor.getRaizPanel().repaint();
+        }
+    }
+
+    // ==================== PINTADO ====================
+    public void pintarBotones(Graphics2D g2, boolean maximizado) {
+        pintarBotonMinimizar(g2);
+        pintarBotonMaximizar(g2, maximizado);
+        pintarBotonCerrar(g2);
+    }
+
+    private void pintarBotonMinimizar(Graphics2D g2) {
+        Rectangle r = btnMinBounds();
+        if (btnMinimizarHover) {
+            g2.setColor(Color.BTN_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        pintarTextoBoton(g2, r, "−");
+    }
+
+    private void pintarBotonMaximizar(Graphics2D g2, boolean maximizado) {
+        Rectangle r = btnMaxBounds();
+        if (btnMaximizarHover) {
+            g2.setColor(Color.BTN_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        pintarTextoBoton(g2, r, maximizado ? "❐" : "□");
+    }
+
+    private void pintarBotonCerrar(Graphics2D g2) {
+        Rectangle r = btnCerrarBounds();
+        if (btnCerrarHover) {
+            g2.setColor(Color.CLOSE_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        pintarTextoBoton(g2, r, "✕");
+    }
+
+    private void pintarTextoBoton(Graphics2D g2, Rectangle r, String txt) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(Color.TEXT_PRIMARY);
+        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+        FontMetrics fm = g2.getFontMetrics();
+        int tx = r.x + (r.width  - fm.stringWidth(txt)) / 2;
+        int ty = r.y + (r.height - fm.getHeight()) / 2 + fm.getAscent();
+        g2.drawString(txt, tx, ty);
+    }
+
+    // ==================== ALTURA ====================
+    public static int getAlto() {
+        return MENUBAR_ALTO;
+    }
 }

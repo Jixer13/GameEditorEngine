@@ -9,24 +9,29 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.net.URL;
 
+/**
+ * Pantalla de bienvenida del Motor 2D.
+ * Ofrece acceso a: Nuevo Proyecto, Configuración y Salir.
+ * Al pulsar "Nuevo Proyecto" se cierra y abre el {@link Editor}.
+ */
 public class Index extends JFrame {
 
     // ==================== CONSTANTES ====================
-    private static final int WINDOW_WIDTH = 600;
-    private static final int WINDOW_HEIGHT = 500;
-    private static final int WINDOW_RADIUS = 40;
-    private static final int BUTTON_SIZE = 80;
-    private static final int BUTTON_ICON_SIZE = 50;
-    private static final int BUTTON_RADIUS = 25;
-    private static final int BUTTON_SPACING = 30;
+    private static final int WINDOW_WIDTH       = 600;
+    private static final int WINDOW_HEIGHT      = 500;
+    private static final int WINDOW_RADIUS      = 40;
+    private static final int BUTTON_SIZE        = 80;
+    private static final int BUTTON_ICON_SIZE   = 50;
+    private static final int BUTTON_RADIUS      = 25;
+    private static final int BUTTON_SPACING     = 30;
     private static final int BUTTON_CONTAINER_Y = 210;
 
     // Rutas de iconos
     private static final String ICON_NEW_PROJECT = "/iconos/logoNewProject.png";
-    private static final String ICON_CONFIG = "/iconos/logoCarpeta.png";
-    private static final String ICON_EXIT = "/iconos/logoSalir2.png";
+    private static final String ICON_CONFIG      = "/iconos/logoCarpeta.png";
+    private static final String ICON_EXIT        = "/iconos/logoSalir2.png";
 
-    // ==================== ATRIBUTOS ====================
+    // ==================== ESTADO ====================
     private int mouseX, mouseY;
 
     // ==================== CONSTRUCTOR ====================
@@ -38,7 +43,7 @@ public class Index extends JFrame {
         add(panelPrincipal);
     }
 
-    // ==================== MÉTODOS DE CONFIGURACIÓN ====================
+    // ==================== CONFIGURACIÓN DE VENTANA ====================
     private void configurarVentana() {
         setUndecorated(true);
         setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -48,35 +53,39 @@ public class Index extends JFrame {
     }
 
     private void aplicarRedondeoVentana() {
-        setShape(new RoundRectangle2D.Double(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_RADIUS, WINDOW_RADIUS));
+        setShape(new RoundRectangle2D.Double(
+                0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
+                WINDOW_RADIUS, WINDOW_RADIUS));
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
-                setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), WINDOW_RADIUS, WINDOW_RADIUS));
+                setShape(new RoundRectangle2D.Double(
+                        0, 0, getWidth(), getHeight(),
+                        WINDOW_RADIUS, WINDOW_RADIUS));
             }
         });
     }
 
-    // ==================== MÉTODOS DE INTERFAZ ====================
+    // ==================== INTERFAZ ====================
     private JPanel crearPanelPrincipal() {
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(null);
         panel.setBackground(Color.BACKGROUND);
-        panel.setLayout(null);
-        agregarArrastrePanelPrincipal(panel);
+        agregarArrastePanelPrincipal(panel);
         return panel;
     }
 
     private void agregarBotonesCentro(JPanel padre) {
-        JPanel contenedor = new JPanel(new FlowLayout(FlowLayout.CENTER, BUTTON_SPACING, 0));
+        JPanel contenedor = new JPanel(
+                new FlowLayout(FlowLayout.CENTER, BUTTON_SPACING, 0));
         contenedor.setOpaque(false);
 
         JButton btnProyecto = crearBoton(ICON_NEW_PROJECT);
-        JButton btnConfig = crearBoton(ICON_CONFIG);
-        JButton btnSalir = crearBoton(ICON_EXIT);
+        JButton btnConfig   = crearBoton(ICON_CONFIG);
+        JButton btnSalir    = crearBoton(ICON_EXIT);
 
         btnProyecto.addActionListener(e -> abrirEditor());
-        btnSalir.addActionListener(e -> System.exit(0));
+        btnSalir   .addActionListener(e -> System.exit(0));
 
         contenedor.add(btnProyecto);
         contenedor.add(btnConfig);
@@ -87,10 +96,11 @@ public class Index extends JFrame {
     }
 
     private void abrirEditor() {
-        dispose();      // cierra el Index
-        new Editor();   // abre el Editor
+        dispose();
+        new Editor();
     }
 
+    // ==================== BOTONES ====================
     private JButton crearBoton(String rutaIcono) {
         BotonRedondo btn = new BotonRedondo();
         cargarIconoEnBoton(btn, rutaIcono);
@@ -102,27 +112,24 @@ public class Index extends JFrame {
     }
 
     private void cargarIconoEnBoton(JButton btn, String rutaIcono) {
-        if (rutaIcono == null || rutaIcono.isEmpty()) {
-            return;
-        }
-
+        if (rutaIcono == null || rutaIcono.isEmpty()) return;
         try {
-            URL recursoURL = getClass().getResource(rutaIcono);
-            if (recursoURL != null) {
-                ImageIcon icon = new ImageIcon(recursoURL);
-                Image img = icon.getImage().getScaledInstance(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE, Image.SCALE_SMOOTH);
+            URL url = getClass().getResource(rutaIcono);
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage()
+                        .getScaledInstance(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE,
+                                Image.SCALE_SMOOTH);
                 btn.setIcon(new ImageIcon(img));
             } else {
                 System.err.println("Recurso no encontrado: " + rutaIcono);
             }
         } catch (Exception e) {
             System.err.println("Error al cargar icono: " + rutaIcono);
-            e.printStackTrace();
         }
     }
 
-    // ==================== MÉTODOS DE EVENTO ====================
-    private void agregarArrastrePanelPrincipal(JPanel panel) {
+    // ==================== EVENTOS ====================
+    private void agregarArrastePanelPrincipal(JPanel panel) {
         panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -134,16 +141,15 @@ public class Index extends JFrame {
         panel.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                int x = e.getXOnScreen();
-                int y = e.getYOnScreen();
-                setLocation(x - mouseX, y - mouseY);
+                setLocation(e.getXOnScreen() - mouseX,
+                            e.getYOnScreen() - mouseY);
             }
         });
     }
 
     // ==================== CLASE INTERNA ====================
     /**
-     * Botón personalizado con apariencia redonda y efecto hover
+     * Botón con forma redondeada y efecto hover de color.
      */
     private class BotonRedondo extends JButton {
         private java.awt.Color colorActual = Color.BUTTON_DEFAULT;
@@ -155,7 +161,6 @@ public class Index extends JFrame {
                     colorActual = Color.BUTTON_HOVER;
                     repaint();
                 }
-
                 @Override
                 public void mouseExited(MouseEvent e) {
                     colorActual = Color.BUTTON_DEFAULT;
@@ -167,9 +172,11 @@ public class Index extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(colorActual);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), BUTTON_RADIUS, BUTTON_RADIUS);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(),
+                    BUTTON_RADIUS, BUTTON_RADIUS);
             g2.dispose();
             super.paintComponent(g);
         }
