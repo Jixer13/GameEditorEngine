@@ -74,7 +74,9 @@ public class Serializer {
         if (!file.exists()) {
             throw new IOException("No se encontró project.json en: " + projectPath);
         }
-        return mapper.readValue(file, Project.class);
+        Project project = mapper.readValue(file, Project.class);
+        project.setPath(projectPath); // Aseguramos que el objeto conoce su ubicación en disco
+        return project;
     }
 
     // SCENES

@@ -1,13 +1,17 @@
 package org.motor2d.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Project {
 
     private String name;
-    private String version;
-    private String initialScene;        // nombre de la escena con la que arranca el juego
+
+    @JsonIgnore
+    private String path;
+
+    private String version;    private String initialScene;        // nombre de la escena con la que arranca el juego
     private Configuration configuration;
     private List<Tileset> tilesets;     // assets de tilesets disponibles en el proyecto
 
@@ -32,6 +36,9 @@ public class Project {
     // Getters y Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
 
     public String getVersion() { return version; }
     public void setVersion(String version) { this.version = version; }

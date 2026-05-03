@@ -38,8 +38,12 @@ public class Editor extends JFrame {
     private Rectangle estadoAnterior;
 
     // Paneles
-    private JPanel panelMenuBar, panelIzquierdo, panelCentral, panelDerecho, panelInferior;
+    private JPanel panelMenuBar, panelIzquierdo, panelDerecho, panelInferior;
+    private PanelCanvas panelCentral;
     private JPanel raizPanel;
+
+    // Controlador del editor
+    private EditorController controller;
 
     // Gestión de proyectos
     private File rutaProyecto;
@@ -128,9 +132,11 @@ public class Editor extends JFrame {
 
         panelMenuBar = crearMenuBar();
         panelIzquierdo = panelTransparente();
-        panelCentral = panelTransparente();
+        panelCentral = new PanelCanvas();
         panelDerecho = panelTransparente();
         panelInferior = crearPanelCarpetas();
+        
+        controller = new EditorController();
 
         for (JPanel p : new JPanel[]{panelMenuBar, panelIzquierdo, panelCentral, panelDerecho, panelInferior})
             raizPanel.add(p);
