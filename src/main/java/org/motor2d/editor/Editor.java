@@ -89,6 +89,9 @@ public class Editor extends JFrame {
         panelProperties = new PanelProperties();
         panelCanvas     = new PanelCanvas();
         panelAssets     = new PanelAssets(rutaProyecto, carpetaProyectos, panelCanvas);
+        
+        // Vinculamos el canvas al controlador para que el motor sepa dónde dibujar
+        controller.setCanvas(panelCanvas);
 
         // Panel principal con gestor de dibujado personalizado
         raizPanel = new JPanel(null) {
@@ -223,6 +226,7 @@ public class Editor extends JFrame {
     // ==================== GETTERS ====================
     public EditorController getController() { return controller; }
     public PanelCanvas getPanelCanvas() { return panelCanvas; }
+    public JPanel getRaizPanel() { return raizPanel; }
 
     // ==================== PUNTO DE ENTRADA ====================
     public static void main(String[] args) {
