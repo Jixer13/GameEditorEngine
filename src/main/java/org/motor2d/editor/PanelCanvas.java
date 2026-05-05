@@ -1,6 +1,7 @@
 package org.motor2d.editor;
 
 import org.motor2d.core.Engine;
+import org.motor2d.core.InputManager;
 import org.motor2d.utilities.Color;
 import javax.swing.*;
 import java.awt.*;
@@ -44,6 +45,20 @@ public class PanelCanvas extends JPanel {
         setBackground(java.awt.Color.BLACK);
         setFocusable(true);
         
+        // Registro del sistema de entrada del motor
+        InputManager input = new InputManager();
+        addKeyListener(input);
+        addMouseListener(input);
+        addMouseMotionListener(input);
+        
+        // Aseguramos que el panel capture el foco al hacer clic
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                requestFocusInWindow();
+            }
+        });
+
         registrarEventos();
     }
 

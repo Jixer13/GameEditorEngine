@@ -70,7 +70,40 @@ public class PhysicsSystem {
      * Resuelve la colisión separando las entidades (lógica básica de empuje).
      */
     private void resolveCollision(CollisionResult result) {
-        // En una implementación avanzada, aquí se calcularía el vector de separación
-        // y se aplicaría a los Transforms para que no se solapen.
+        Entity a = result.getEntityA();
+        Entity b = result.getEntityB();
+
+        Collider colA = a.getComponent(Collider.class);
+        Collider colB = b.getComponent(Collider.class);
+        Transform transA = a.getComponent(Transform.class);
+        Transform transB = b.getComponent(Transform.class);
+
+        if (colA.isTrigger() || colB.isTrigger()) return;
+
+        // Calculamos los centros
+        float centerAX = transA.getX() + colA.getOffsetX() + colA.getWidth() / 2;
+        float centerAY = transA.getY() + colA.getOffsetY() + colA.getHeight() / 2;
+        float centerBX = transB.getX() + colB.getOffsetX() + colB.getWidth() / 2;
+        float centerBY = transB.getY() + colB.getOffsetY() + colB.getHeight() / 2;
+
+        // Distancia entre centros
+        float dx = centerAX - centerBX;
+        float dy = centerAY - centerBY;
+
+        // Solapamiento mínimo para separar
+        float combinedHalfWidths = (colA.getWidth() + colB.getWidth()) / 2;
+        float combinedHalfHeights = (colA.getHeight() + colB.getHeight()) / 2;
+
+        float overlapX = combinedHalfWidths - Math.abs(dx);
+        float overlapY = combinedHalfHeights - Math.abs(dy);
+
+        // Separamos por el eje de menor solapamiento
+        if (overlapX < overlapY) {
+            if (dx > 0) transA.setX(transA.getX() + overlapX);
+            else transA.setX(transA.getX() - overlapX);
+        } else {
+            if (dy > 0) transA.setY(transA.getY() + overlapY);
+            else transA.setY(transA.getY() - overlapY);
+        }
     }
 }

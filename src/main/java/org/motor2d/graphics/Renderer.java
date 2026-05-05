@@ -217,21 +217,21 @@ public class Renderer {
     private float[] resolveAnchor(UIElement element) {
         float x = element.getX();
         float y = element.getY();
-        int   w = camara.getViewWidth();
-        int   h = camara.getViewHeight();
+        int w = camara.getViewWidth();
+        int h = camara.getViewHeight();
         float ew = element.getWidth();
         float eh = element.getHeight();
 
         return switch (element.getAnchor()) {
-            case TOP_LEFT      -> new float[]{x,                y                };
-            case TOP_CENTER    -> new float[]{w/2f - ew/2f + x, y               };
-            case TOP_RIGHT     -> new float[]{w - ew - x,       y               };
-            case MIDDLE_LEFT   -> new float[]{x,                h/2f - eh/2f + y };
+            case TOP_LEFT -> new float[]{x, y};
+            case TOP_CENTER -> new float[]{w/2f - ew/2f + x, y};
+            case TOP_RIGHT -> new float[]{w - ew - x, y};
+            case MIDDLE_LEFT -> new float[]{x, h/2f - eh/2f + y };
             case MIDDLE_CENTER -> new float[]{w/2f - ew/2f + x, h/2f - eh/2f + y};
-            case MIDDLE_RIGHT  -> new float[]{w - ew - x,       h/2f - eh/2f + y};
-            case BOTTOM_LEFT   -> new float[]{x,                h - eh - y       };
-            case BOTTOM_CENTER -> new float[]{w/2f - ew/2f + x, h - eh - y      };
-            case BOTTOM_RIGHT  -> new float[]{w - ew - x,       h - eh - y      };
+            case MIDDLE_RIGHT -> new float[]{w - ew - x, h/2f - eh/2f + y};
+            case BOTTOM_LEFT -> new float[]{x, h - eh - y };
+            case BOTTOM_CENTER -> new float[]{w/2f - ew/2f + x, h - eh - y};
+            case BOTTOM_RIGHT -> new float[]{w - ew - x, h - eh - y};
         };
     }
 

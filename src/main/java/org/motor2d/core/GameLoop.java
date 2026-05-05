@@ -76,6 +76,9 @@ public class GameLoop implements Runnable {
                 canvas.repaint();
             }
 
+            // Sincronización del estado de entrada (Input)
+            InputManager.update();
+
             // Pausa mínima para no saturar la CPU
             try {
                 Thread.sleep(1);
