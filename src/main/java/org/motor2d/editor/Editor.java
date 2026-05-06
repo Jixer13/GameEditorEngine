@@ -89,7 +89,10 @@ public class Editor extends JFrame {
         panelProperties = new PanelProperties();
         panelCanvas     = new PanelCanvas();
         panelAssets     = new PanelAssets(rutaProyecto, carpetaProyectos, panelCanvas);
-        
+
+        // Conectar controlador con los paneles
+        panelHierarchy.init(controller, panelProperties);
+
         // Vinculamos el canvas al controlador para que el motor sepa dónde dibujar
         controller.setCanvas(panelCanvas);
 
@@ -224,9 +227,17 @@ public class Editor extends JFrame {
     }
 
     // ==================== GETTERS ====================
-    public EditorController getController() { return controller; }
-    public PanelCanvas getPanelCanvas() { return panelCanvas; }
-    public JPanel getRaizPanel() { return raizPanel; }
+    public EditorController getController()      { return controller;      }
+    public PanelCanvas      getPanelCanvas()      { return panelCanvas;     }
+    public JPanel           getRaizPanel()        { return raizPanel;       }
+
+    /** Alias para compatibilidad con Index.java */
+    public EditorController getEditorController() { return controller; }
+
+    /** Refresca el árbol de jerarquía después de cargar/crear un proyecto */
+    public void refrescarHierarchy() {
+        SwingUtilities.invokeLater(() -> panelHierarchy.refrescar());
+    }
 
     // ==================== PUNTO DE ENTRADA ====================
     public static void main(String[] args) {
