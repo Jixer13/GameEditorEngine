@@ -134,8 +134,8 @@ public class Index extends JFrame {
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         chooser.setAcceptAllFileFilterUsed(false);
 
-        File carpetaProyectos = new File(System.getProperty("user.dir"), "Proyectos");
-        if (carpetaProyectos.exists()) chooser.setCurrentDirectory(carpetaProyectos);
+        // Por defecto, empezamos en la carpeta de usuario (Escritorio, Documentos...)
+        chooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 

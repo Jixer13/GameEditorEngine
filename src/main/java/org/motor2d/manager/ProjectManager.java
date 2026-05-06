@@ -21,26 +21,30 @@ public class ProjectManager {
 
     // CREAR PROYECTO
     public Project createProject(String name, String path) throws IOException {
-        //Crear el objeto proyecto con valores por defecto
+        // La ruta final será path/nombre_del_proyecto
+        File projectFolder = new File(path, name);
+        String finalPath = projectFolder.getAbsolutePath();
+
+        // Crear el objeto proyecto con valores por defecto
         Project project = new Project();
         project.setName(name);
 
-        //Crear la estructura de carpetas en disco
-        serializer.createProjectStructure(path);
+        // Crear la estructura de carpetas en disco
+        serializer.createProjectStructure(finalPath);
 
         // Crear la escena inicial por defecto
         Scene mainScene = new Scene();
         mainScene.setName("main");
 
         // Guardar la escena inicial en disco
-        serializer.saveScene(mainScene, path);
+        serializer.saveScene(mainScene, finalPath);
 
         // Guardar el project.json en disco
-        serializer.saveProject(project, path);
+        serializer.saveProject(project, finalPath);
 
-        //Establece como proyecto actual
+        // Establece como proyecto actual la ruta completa (con la subcarpeta)
         this.currentProject = project;
-        this.currentProjectPath = path;
+        this.currentProjectPath = finalPath;
 
         return project;
     }

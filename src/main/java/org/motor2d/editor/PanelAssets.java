@@ -29,8 +29,8 @@ public class PanelAssets extends JPanel {
     private DefaultMutableTreeNode nodoSeleccionado;
     private File carpetaActual;
 
-    private final File   carpetaProyectos;
-    private final File   rutaProyecto;
+    private File   carpetaProyectos;
+    private File   rutaProyecto;
     private final PanelCanvas canvas;         // referencia al visor central
 
     // ==================== CONSTRUCTOR ====================
@@ -42,6 +42,13 @@ public class PanelAssets extends JPanel {
         setOpaque(false);
         setLayout(new BorderLayout());
         construirUI();
+    }
+
+    public void actualizarRuta(File nuevaRuta) {
+        this.rutaProyecto = nuevaRuta;
+        this.carpetaProyectos = nuevaRuta;
+        refrescarArbol();
+        labelInfo.setText("Proyecto: " + rutaProyecto.getName() + " | Click derecho para opciones");
     }
 
     // ==================== CONSTRUCCIÓN UI ====================
@@ -122,7 +129,8 @@ public class PanelAssets extends JPanel {
 
     // ==================== ÁRBOL ====================
     private DefaultMutableTreeNode crearArbolCarpetas() {
-        DefaultMutableTreeNode raiz = new DefaultMutableTreeNode("📁 Proyectos");
+        String nombreRaiz = "📁 " + (rutaProyecto != null ? rutaProyecto.getName() : "Proyectos");
+        DefaultMutableTreeNode raiz = new DefaultMutableTreeNode(nombreRaiz);
         if (carpetaProyectos.exists() && carpetaProyectos.isDirectory()) {
             agregarArchivosRecursivos(raiz, carpetaProyectos);
         }
@@ -145,37 +153,22 @@ public class PanelAssets extends JPanel {
                     subNodo.add(new DefaultMutableTreeNode(""));
                 nodo.add(subNodo);
             } else if (!archivo.isDirectory()) {
-                String icono = obtenerIconoArchivo(archivo.getName());
                 nodo.add(new DefaultMutableTreeNode(
-                        icono + " " + archivo.getName()));
+                        "📄 " + archivo.getName()));
             }
         }
-    }
-
-    private String obtenerIconoArchivo(String nombre) {
-        String n = nombre.toLowerCase();
-        if (n.endsWith(".java"))                              return "☕";
-        if (n.endsWith(".png")  || n.endsWith(".jpg")
-         || n.endsWith(".jpeg") || n.endsWith(".gif")
-         || n.endsWith(".bmp")  || n.endsWith(".webp"))      return "🖼";
-        if (n.endsWith(".txt"))                              return "📄";
-        if (n.endsWith(".json"))                             return "⚙";
-        if (n.endsWith(".xml"))                              return "🏷";
-        if (n.endsWith(".wav")  || n.endsWith(".mp3")
-         || n.endsWith(".ogg"))                              return "🔊";
-        return "📋";
     }
 
     // ==================== SELECCIÓN DE NODO ====================
     private void procesarNodoSeleccionado(DefaultMutableTreeNode nodo) {
         String nombreNodo = nodo.getUserObject().toString();
-        String nombre     = nombreNodo.replaceAll("[^\\w\\-. ]", "").trim();
+        String nombre     = nombreNodo.replace("📁", "").replace("📄", "").trim();
 
-        if (nombreNodo.contains("📁") || nombreNodo.contains("🎮")) {
+        if (nombreNodo.contains("📁")) {
             carpetaActual = obtenerRutaArchivo(nodo);
             labelInfo.setText("📁 Carpeta: " + nombre);
 
-        } else if (nombreNodo.contains("🖼")) {
+        } else if (esImagen(nombre)) {
             // ──> Enviar imagen al canvas central
             File archivoImagen = obtenerRutaArchivo(nodo);
             labelInfo.setText("🖼 Imagen: " + nombre);
@@ -187,12 +180,18 @@ public class PanelAssets extends JPanel {
         }
     }
 
+    private boolean esImagen(String nombre) {
+        String n = nombre.toLowerCase();
+        return n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") 
+            || n.endsWith(".gif") || n.endsWith(".bmp") || n.endsWith(".webp");
+    }
+
     private File obtenerRutaArchivo(DefaultMutableTreeNode nodo) {
         StringBuilder ruta = new StringBuilder();
         Object[] rutaNodos = nodo.getPath();
         for (int i = 1; i < rutaNodos.length; i++) {
             String parte = rutaNodos[i].toString()
-                    .replaceAll("[^\\w\\-. ]", "").trim();
+                    .replace("📁", "").replace("📄", "").trim();
             ruta.append(parte);
             if (i < rutaNodos.length - 1) ruta.append(File.separator);
         }

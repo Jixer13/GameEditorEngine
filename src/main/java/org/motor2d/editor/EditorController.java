@@ -30,7 +30,11 @@ public class EditorController {
     private final ResourceManager resourceManager;
 
     private PanelCanvas canvas;
+    private PanelAssets panelAssets;
+    private StatusBar statusBar;
     private Clip audioClip;
+
+    private boolean cambiosSinGuardar = false;
 
     public EditorController() {
         this.projectManager  = new ProjectManager();
@@ -47,13 +51,28 @@ public class EditorController {
         this.canvas = canvas;
     }
 
+    public void setPanelAssets(PanelAssets panelAssets) {
+        this.panelAssets = panelAssets;
+    }
+
+    public void setStatusBar(StatusBar statusBar) {
+        this.statusBar = statusBar;
+    }
+
     // ==================== GESTIÓN DE PROYECTO ====================
 
     public boolean createProject(String name, String path) {
         try {
+            if (statusBar != null) statusBar.mostrarMensajePermanente("Creando proyecto...");
             projectManager.createProject(name, path);
             sceneManager.loadScene("main");
             inicializarMotor();
+            if (panelAssets != null) panelAssets.actualizarRuta(new File(projectManager.getCurrentProjectPath()));
+            if (statusBar != null) {
+                statusBar.setInfoProyecto(name);
+                statusBar.mostrarMensaje("Proyecto creado con éxito", 3000);
+            }
+            cambiosSinGuardar = false;
             return true;
         } catch (Exception e) {
             mostrarError("Error al crear el proyecto", e.getMessage());
@@ -63,6 +82,7 @@ public class EditorController {
 
     public boolean openProject(String path) {
         try {
+            if (statusBar != null) statusBar.mostrarMensajePermanente("Abriendo proyecto...");
             projectManager.openProject(path);
             String initialScene = projectManager.getCurrentProject()
                     .getInitialScene()
@@ -70,6 +90,12 @@ public class EditorController {
                     .replace(".json", "");
             sceneManager.loadScene(initialScene);
             inicializarMotor();
+            if (panelAssets != null) panelAssets.actualizarRuta(new File(path));
+            if (statusBar != null) {
+                statusBar.setInfoProyecto(projectManager.getCurrentProject().getName());
+                statusBar.mostrarMensaje("Proyecto abierto con éxito", 3000);
+            }
+            cambiosSinGuardar = false;
             return true;
         } catch (Exception e) {
             mostrarError("Error al abrir el proyecto", e.getMessage());
@@ -84,6 +110,11 @@ public class EditorController {
             sceneManager.closeScene();
             projectManager.closeProject();
             Sprite.clearCache();
+            if (statusBar != null) {
+                statusBar.setInfoProyecto("");
+                statusBar.mostrarMensaje("Proyecto cerrado", 3000);
+            }
+            cambiosSinGuardar = false;
             return true;
         } catch (Exception e) {
             mostrarError("Error al cerrar el proyecto", e.getMessage());
@@ -119,13 +150,24 @@ public class EditorController {
 
     public boolean saveProject() {
         try {
+            if (statusBar != null) statusBar.mostrarMensajePermanente("Guardando...");
             projectManager.saveProject();
             sceneManager.saveScene();
+            if (statusBar != null) statusBar.mostrarMensaje("Proyecto guardado correctamente", 3000);
+            cambiosSinGuardar = false;
             return true;
         } catch (Exception e) {
             mostrarError("Error al guardar", e.getMessage());
             return false;
         }
+    }
+
+    public void marcarCambio() {
+        cambiosSinGuardar = true;
+    }
+
+    public boolean tieneCambiosSinGuardar() {
+        return cambiosSinGuardar;
     }
 
     public Entity createEntity(String name) {
@@ -224,8 +266,12 @@ public class EditorController {
         try {
             String projectPath = getProjectPath();
             if (projectPath == null) return List.of();
-            File assetsDir = new File(projectPath, "Assets");
-            if (!assetsDir.exists()) return List.of();
+            File assetsDir = new File(projectPath, "assets");
+            if (!assetsDir.exists()) {
+                // Intento alternativo por si acaso está en Mayúsculas
+                assetsDir = new File(projectPath, "Assets");
+                if (!assetsDir.exists()) return List.of();
+            }
             java.util.List<String> result = new java.util.ArrayList<>();
             buscarImagenes(assetsDir, assetsDir, result);
             return result;

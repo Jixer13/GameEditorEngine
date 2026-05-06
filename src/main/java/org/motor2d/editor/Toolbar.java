@@ -24,6 +24,10 @@ public class Toolbar extends JPanel {
     private boolean btnMaximizarHover = false;
     private boolean btnMinimizarHover = false;
 
+    // ==================== COMPONENTES SWING ====================
+    private JMenuBar menuBar;
+    private JMenu menuArchivo;
+
     // ==================== REFERENCIAS ====================
     private final Editor editor;
 
@@ -32,6 +36,77 @@ public class Toolbar extends JPanel {
         this.editor = editor;
         setOpaque(false);
         setLayout(null);
+        crearMenuArchivo();
+    }
+
+    private void crearMenuArchivo() {
+        menuBar = new JMenuBar();
+        menuBar.setBackground(Color.MENUBAR_BACKGROUND);
+        menuBar.setBorder(BorderFactory.createEmptyBorder());
+
+        menuArchivo = new JMenu("Archivo");
+        menuArchivo.setForeground(Color.TEXT_PRIMARY);
+        menuArchivo.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        // Estilizar los items del menú
+        JMenuItem itemNuevo = crearItem("Nuevo Proyecto", e -> {
+            String nombre = JOptionPane.showInputDialog(editor, "Nombre del nuevo proyecto:");
+            if (nombre != null && !nombre.isBlank()) {
+                JFileChooser chooser = new JFileChooser(System.getProperty("user.home"));
+                chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
+                    editor.getController().createProject(nombre.trim(), chooser.getSelectedFile().getAbsolutePath());
+                    editor.refrescarHierarchy();
+                }
+            }
+        });
+
+        JMenuItem itemAbrir = crearItem("Abrir Proyecto", e -> {
+            JFileChooser chooser = new JFileChooser(System.getProperty("user.home"));
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
+                editor.getController().openProject(chooser.getSelectedFile().getAbsolutePath());
+                editor.refrescarHierarchy();
+            }
+        });
+
+        JMenuItem itemGuardar = crearItem("Guardar", e -> editor.getController().saveProject());
+
+        JMenuItem itemGuardarComo = crearItem("Guardar como...", e -> {
+            JFileChooser chooser = new JFileChooser(System.getProperty("user.home"));
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    editor.getController().getProjectManager().saveProjectAs(chooser.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(editor, "Proyecto guardado en la nueva ubicación.");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(editor, "Error al guardar: " + ex.getMessage());
+                }
+            }
+        });
+
+        JMenuItem itemSalir = crearItem("Salir", e -> editor.confirmarSalida());
+
+        menuArchivo.add(itemNuevo);
+        menuArchivo.add(itemAbrir);
+        menuArchivo.addSeparator();
+        menuArchivo.add(itemGuardar);
+        menuArchivo.add(itemGuardarComo);
+        menuArchivo.addSeparator();
+        menuArchivo.add(itemSalir);
+
+        menuBar.add(menuArchivo);
+        menuBar.setBounds(5, 5, 60, 25);
+        add(menuBar);
+    }
+
+    private JMenuItem crearItem(String texto, java.awt.event.ActionListener accion) {
+        JMenuItem item = new JMenuItem(texto);
+        item.setBackground(Color.POPUP_BACKGROUND);
+        item.setForeground(Color.TEXT_PRIMARY);
+        item.setFont(new Font("Arial", Font.PLAIN, 12));
+        item.addActionListener(accion);
+        return item;
     }
 
     // ==================== BOUNDS DE BOTONES ====================

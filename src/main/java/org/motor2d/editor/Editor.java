@@ -39,6 +39,7 @@ public class Editor extends JFrame {
     private PanelCanvas     panelCanvas;
     private PanelProperties panelProperties;
     private PanelAssets     panelAssets;
+    private StatusBar       statusBar;
 
     // Cerebro del editor
     private EditorController controller;
@@ -57,7 +58,7 @@ public class Editor extends JFrame {
         setUndecorated(true);
         setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
 
         construirUI();
@@ -89,9 +90,12 @@ public class Editor extends JFrame {
         panelProperties = new PanelProperties();
         panelCanvas     = new PanelCanvas();
         panelAssets     = new PanelAssets(rutaProyecto, carpetaProyectos, panelCanvas);
+        statusBar       = new StatusBar();
 
         // Conectar controlador con los paneles
         panelHierarchy.init(controller, panelProperties);
+        controller.setPanelAssets(panelAssets);
+        controller.setStatusBar(statusBar);
 
         // Vinculamos el canvas al controlador para que el motor sepa dónde dibujar
         controller.setCanvas(panelCanvas);
@@ -113,6 +117,7 @@ public class Editor extends JFrame {
                 pintarZona(g2, panelCanvas,     Color.CANVAS_COLOR);
                 pintarZona(g2, panelProperties, Color.BACKGROUND);
                 pintarZona(g2, panelAssets,     Color.BACKGROUND);
+                pintarZona(g2, statusBar,       Color.PANEL_BACKGROUND);
 
                 // Los botones de la barra de título se pintan al final
                 toolbar.pintarBotones(g2, maximizado);
@@ -127,6 +132,7 @@ public class Editor extends JFrame {
         raizPanel.add(panelCanvas);
         raizPanel.add(panelProperties);
         raizPanel.add(panelAssets);
+        raizPanel.add(statusBar);
 
         registrarEventosVentana();
 
@@ -145,19 +151,34 @@ public class Editor extends JFrame {
 
     // ==================== SISTEMA DE LAYOUT MANUAL ====================
     private void distribuirPaneles(int W, int H) {
-        int barH   = Toolbar.getAlto();
-        int panelY = barH + DIVIDER;
-        int totalH = H - panelY;
-        int cenX   = PANEL_IZQ_W + DIVIDER;
-        int cenW   = W - PANEL_IZQ_W - PANEL_DER_W - DIVIDER * 2;
-        int areaH  = totalH - PANEL_INF_H - DIVIDER;
+        int barH    = Toolbar.getAlto();
+        int statusH = 25;
+        int panelY  = barH + DIVIDER;
+        
+        // Espacio disponible entre Toolbar y StatusBar
+        int areaDisponibleH = H - barH - statusH - (DIVIDER * 2);
+        
+        int cenX    = PANEL_IZQ_W + DIVIDER;
+        int cenW    = W - PANEL_IZQ_W - PANEL_DER_W - (DIVIDER * 2);
+        
+        // El panel de assets ocupa la parte inferior del área central
+        int areaH   = areaDisponibleH - PANEL_INF_H - DIVIDER;
 
         toolbar        .setBounds(0,              0,       W,            barH);
+        
+        // Columna Izquierda
         panelHierarchy .setBounds(0,              panelY,  PANEL_IZQ_W, areaH);
+        
+        // Área Central (Canvas + Assets)
         panelCanvas    .setBounds(cenX,           panelY,  cenW,        areaH);
-        panelProperties.setBounds(W - PANEL_DER_W, panelY, PANEL_DER_W, totalH);
-        panelAssets    .setBounds(0,    panelY + areaH + DIVIDER,
-                                  cenX + cenW,  PANEL_INF_H);
+        panelAssets    .setBounds(0,              panelY + areaH + DIVIDER,
+                                  cenX + cenW,    PANEL_INF_H);
+        
+        // Columna Derecha (Propiedades - ahora llega exactamente hasta la barra de estado)
+        panelProperties.setBounds(W - PANEL_DER_W, panelY, PANEL_DER_W, areaDisponibleH + DIVIDER);
+        
+        // Barra de Estado (Abajo del todo, ancho completo)
+        statusBar      .setBounds(0, H - statusH, W, statusH);
     }
 
     private void pintarZona(Graphics2D g2, JPanel panel, java.awt.Color bg) {
@@ -173,6 +194,13 @@ public class Editor extends JFrame {
 
     // ==================== EVENTOS DE VENTANA (ARRASTRE Y BOTONES) ====================
     private void registrarEventosVentana() {
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                confirmarSalida();
+            }
+        });
+
         raizPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -188,7 +216,7 @@ public class Editor extends JFrame {
                 } else if (toolbar.btnMaxBounds().contains(p)) {
                     alternarMaximizar();
                 } else if (toolbar.btnCerrarBounds().contains(p)) {
-                    System.exit(0);
+                    confirmarSalida();
                 }
             }
         });
@@ -224,6 +252,26 @@ public class Editor extends JFrame {
             maximizado = false;
         }
         repaint();
+    }
+
+    void confirmarSalida() {
+        if (controller.isProjectOpen()) {
+            int opc = JOptionPane.showConfirmDialog(this,
+                    "¿Deseas guardar los cambios antes de salir?",
+                    "Cerrar Editor",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+
+            if (opc == JOptionPane.YES_OPTION) {
+                controller.saveProject();
+                System.exit(0);
+            } else if (opc == JOptionPane.NO_OPTION) {
+                System.exit(0);
+            }
+            // Si es CANCEL_OPTION o se cierra el diálogo, no hacemos nada
+        } else {
+            System.exit(0);
+        }
     }
 
     // ==================== GETTERS ====================
