@@ -15,6 +15,7 @@ public class Collider extends Component {
     private float height;   // para RECTANGLE
     private float radius;   // para CIRCLE
     private boolean isTrigger;
+    private boolean isStatic;
 
     public Collider() {
         super();
@@ -25,6 +26,7 @@ public class Collider extends Component {
         this.height = 32;
         this.radius = 16;
         this.isTrigger = false;
+        this.isStatic = false;
     }
 
     // Getters y Setters
@@ -48,4 +50,7 @@ public class Collider extends Component {
 
     public boolean isTrigger() { return isTrigger; }
     public void setTrigger(boolean trigger) { this.isTrigger = trigger; }
+
+    public boolean isStatic() { return isStatic; }
+    public void setStatic(boolean isStatic) { this.isStatic = isStatic; }
 }

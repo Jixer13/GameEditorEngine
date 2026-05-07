@@ -1,88 +1,96 @@
 package org.motor2d.core;
 
 import java.awt.event.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * InputManager - Gestor centralizado de entrada (Teclado y Ratón).
- * 
- * Permite consultar el estado de las teclas en cualquier momento sin depender
- * de los eventos asíncronos de Swing. Esto evita el retraso de repetición del SO.
+ * InputManager - Gestiona la entrada de teclado y ratón mediante polling.
  */
 public class InputManager implements KeyListener, MouseListener, MouseMotionListener {
 
-    // ==================== ATRIBUTOS ESTÁTICOS ====================
-    private static final boolean[] keys = new boolean[1024];
-    private static final boolean[] keysLast = new boolean[1024];
+    // Estado de teclas y botones
+    private static final boolean[] keys = new boolean[65536];
+    private static final boolean[] keysLast = new boolean[65536];
+    private static final boolean[] buttons = new boolean[10];
+    private static final boolean[] buttonsLast = new boolean[10];
 
-    private static final boolean[] mouseButtons = new boolean[10];
-    private static final boolean[] mouseButtonsLast = new boolean[10];
-    private static float mouseX, mouseY;
-
-    // ==================== MÉTODOS DE CONSULTA ====================
+    // Posición del ratón
+    private static float mouseX = 0;
+    private static float mouseY = 0;
 
     /**
-     * Comprueba si una tecla está siendo pulsada actualmente.
+     * Sincroniza el estado actual con el anterior. 
+     * Debe llamarse al final de cada frame del GameLoop.
      */
+    public static void update() {
+        System.arraycopy(keys, 0, keysLast, 0, keys.length);
+        System.arraycopy(buttons, 0, buttonsLast, 0, buttons.length);
+    }
+
+    // ==================== KEYBOARD API ====================
+
     public static boolean isKeyDown(int keyCode) {
         if (keyCode < 0 || keyCode >= keys.length) return false;
         return keys[keyCode];
     }
 
-    /**
-     * Comprueba si una tecla ha sido pulsada justo en este frame.
-     * Útil para acciones que no deben repetirse (ej: abrir un menú o saltar).
-     */
     public static boolean isKeyPressed(int keyCode) {
         if (keyCode < 0 || keyCode >= keys.length) return false;
         return keys[keyCode] && !keysLast[keyCode];
     }
 
-    /**
-     * Comprueba si un botón del ratón está pulsado.
-     */
-    public static boolean isMouseButtonDown(int button) {
-        if (button < 0 || button >= mouseButtons.length) return false;
-        return mouseButtons[button];
+    public static boolean isKeyUp(int keyCode) {
+        if (keyCode < 0 || keyCode >= keys.length) return false;
+        return !keys[keyCode] && keysLast[keyCode];
     }
+
+    // ==================== MOUSE API ====================
 
     public static float getMouseX() { return mouseX; }
     public static float getMouseY() { return mouseY; }
 
-    /**
-     * Sincroniza los estados para detectar pulsaciones nuevas en el próximo frame.
-     * Se llama al final del ciclo en el GameLoop.
-     */
-    public static void update() {
-        System.arraycopy(keys, 0, keysLast, 0, keys.length);
-        System.arraycopy(mouseButtons, 0, mouseButtonsLast, 0, mouseButtons.length);
+    public static boolean isButtonDown(int button) {
+        if (button < 0 || button >= buttons.length) return false;
+        return buttons[button];
     }
 
-    // ==================== IMPLEMENTACIÓN DE EVENTOS ====================
+    public static boolean isButtonPressed(int button) {
+        if (button < 0 || button >= buttons.length) return false;
+        return buttons[button] && !buttonsLast[button];
+    }
+
+    // ==================== LISTENERS (Swing) ====================
 
     @Override
     public void keyPressed(KeyEvent e) {
-        int code = e.getKeyCode();
-        if (code >= 0 && code < keys.length) keys[code] = true;
+        if (e.getKeyCode() >= 0 && e.getKeyCode() < keys.length) {
+            keys[e.getKeyCode()] = true;
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        int code = e.getKeyCode();
-        if (code >= 0 && code < keys.length) keys[code] = false;
+        if (e.getKeyCode() >= 0 && e.getKeyCode() < keys.length) {
+            keys[e.getKeyCode()] = false;
+        }
     }
 
-    @Override public void keyTyped(KeyEvent e) {}
+    @Override
+    public void keyTyped(KeyEvent e) {}
 
     @Override
     public void mousePressed(MouseEvent e) {
-        int button = e.getButton();
-        if (button >= 0 && button < mouseButtons.length) mouseButtons[button] = true;
+        if (e.getButton() >= 0 && e.getButton() < buttons.length) {
+            buttons[e.getButton()] = true;
+        }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        int button = e.getButton();
-        if (button >= 0 && button < mouseButtons.length) mouseButtons[button] = false;
+        if (e.getButton() >= 0 && e.getButton() < buttons.length) {
+            buttons[e.getButton()] = false;
+        }
     }
 
     @Override

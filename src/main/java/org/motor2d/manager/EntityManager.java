@@ -26,7 +26,9 @@ public class EntityManager {
         entity.setName(name);
 
         // Toda entidad tiene Transform por defecto, como en Unity/Godot
-        entity.addComponent(new Transform());
+        Transform transform = new Transform();
+        transform.registerInSystem(sceneManager.getCurrentScene().getTransformSystem());
+        entity.addComponent(transform);
 
         sceneManager.getCurrentScene().addEntity(entity);
         sceneManager.saveScene();
@@ -42,6 +44,7 @@ public class EntityManager {
         entity.setName(name);
 
         Transform transform = new Transform();
+        transform.registerInSystem(sceneManager.getCurrentScene().getTransformSystem());
         entity.addComponent(transform);
 
         SpriteRenderer sprite = new SpriteRenderer();
@@ -117,6 +120,7 @@ public class EntityManager {
         for (Component component : original.getComponents()) {
             if (component instanceof Transform t) {
                 Transform newT = new Transform();
+                newT.registerInSystem(sceneManager.getCurrentScene().getTransformSystem());
                 // Pequeño offset para que no quede encima del original
                 newT.setX(t.getX() + 10);
                 newT.setY(t.getY() + 10);
@@ -169,6 +173,10 @@ public class EntityManager {
         if (entity.hasComponent(component.getClass())) {
             throw new IOException("La entidad ya tiene un componente de tipo: "
                     + component.getClass().getSimpleName());
+        }
+
+        if (component instanceof Transform t) {
+            t.registerInSystem(sceneManager.getCurrentScene().getTransformSystem());
         }
 
         entity.addComponent(component);

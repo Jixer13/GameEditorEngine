@@ -8,12 +8,42 @@ public class Camara {
     private float zoom;
     private int viewWidth;
     private int viewHeight;
+    
+    // Seguimiento suave
+    private org.motor2d.model.Entity target;
+    private float lerpSpeed = 5.0f; // Velocidad de seguimiento (0 = no se mueve, mayor = más rápido)
 
     public Camara(int viewWidth, int viewHeight) {
         this.position   = Vector2.zero();
         this.zoom       = 1.0f;
         this.viewWidth  = viewWidth;
         this.viewHeight = viewHeight;
+    }
+
+    /**
+     * Actualiza la posición de la cámara siguiendo al objetivo con suavizado.
+     */
+    public void update(float deltaTime) {
+        if (target == null) return;
+
+        org.motor2d.model.components.Transform t = target.getComponent(org.motor2d.model.components.Transform.class);
+        if (t == null) return;
+
+        // Calculamos la posición deseada (centro del objetivo)
+        float desiredX = t.getX() - (viewWidth / 2f / zoom);
+        float desiredY = t.getY() - (viewHeight / 2f / zoom);
+
+        // Aplicamos Interpolación Lineal (Lerp)
+        position.x += (desiredX - position.x) * lerpSpeed * deltaTime;
+        position.y += (desiredY - position.y) * lerpSpeed * deltaTime;
+    }
+
+    public void setTarget(org.motor2d.model.Entity target) {
+        this.target = target;
+    }
+
+    public void setLerpSpeed(float speed) {
+        this.lerpSpeed = speed;
     }
 
     // Mover la cámara

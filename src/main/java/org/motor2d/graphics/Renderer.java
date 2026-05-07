@@ -28,10 +28,15 @@ public class Renderer {
 
     private final Camara camara;
     private final String projectPath;
+    private SpriteBatch batch;
 
     public Renderer(Camara camara, String projectPath) {
         this.camara      = camara;
         this.projectPath = projectPath;
+    }
+
+    public Camara getCamara() {
+        return camara;
     }
 
     // ==================== PUNTO DE ENTRADA ====================
@@ -40,29 +45,39 @@ public class Renderer {
      * Dibuja toda la escena siguiendo el orden de capas.
      */
     public void render(Graphics2D g2, Scene scene, List<Tileset> tilesets) {
+        if (batch == null || batch.getGraphics() != g2) {
+            batch = new SpriteBatch(g2);
+        }
+        
         configurarRenderizado(g2);
+        float alpha = org.motor2d.core.Time.getInterpolation();
 
         // 1. Color de fondo
         renderBackground(g2, scene);
 
+        // Iniciamos el batcher para elementos del mundo
+        batch.begin();
+
         // 2. Tilemap (Capas inferiores)
         if (scene.getTilemap() != null) {
-            renderTilemapLayer(g2, scene.getTilemap(),
+            renderTilemapLayer(batch, scene.getTilemap(),
                     TilemapLayer.LayerType.BACKGROUND, tilesets);
-            renderTilemapLayer(g2, scene.getTilemap(),
+            renderTilemapLayer(batch, scene.getTilemap(),
                     TilemapLayer.LayerType.MIDGROUND, tilesets);
         }
 
         // 3. Entidades (Ordenadas por su propia capa)
-        renderEntities(g2, scene);
+        renderEntities(batch, scene, alpha);
 
         // 4. Tilemap (Capas superiores)
         if (scene.getTilemap() != null) {
-            renderTilemapLayer(g2, scene.getTilemap(),
+            renderTilemapLayer(batch, scene.getTilemap(),
                     TilemapLayer.LayerType.FOREGROUND, tilesets);
         }
+        
+        batch.end();
 
-        // 5. Interfaz de usuario
+        // 5. Interfaz de usuario (Dibujado directo o en otro batch)
         renderUI(g2, scene);
     }
 
@@ -81,14 +96,14 @@ public class Renderer {
         g2.fillRect(0, 0, camara.getViewWidth(), camara.getViewHeight());
     }
 
-    private void renderTilemapLayer(Graphics2D g2, Tilemap tilemap,
+    private void renderTilemapLayer(SpriteBatch batch, Tilemap tilemap,
                                     TilemapLayer.LayerType layerType,
                                     List<Tileset> tilesets) {
         TilemapLayer layer = tilemap.getLayer(layerType);
         if (layer == null || layer.isEmpty() || !layer.isVisible()) return;
 
-        g2.setComposite(AlphaComposite.getInstance(
-                AlphaComposite.SRC_OVER, layer.getOpacity()));
+        // Nota: El SpriteBatch maneja su propia opacidad, pero aquí la aplicamos por capa
+        float layerOpacity = layer.getOpacity();
 
         for (Map.Entry<String, Integer> entry : layer.getTileGrid().entrySet()) {
             String[] parts = entry.getKey().split(",");
@@ -110,20 +125,20 @@ public class Renderer {
 
             try {
                 Sprite sprite = Sprite.load(projectPath, tile.getSpritePath());
-                g2.drawImage(sprite.getImage(),
-                        (int) screenX, (int) screenY,
-                        (int)(tilemap.getTileWidth()  * camara.getZoom()),
-                        (int)(tilemap.getTileHeight() * camara.getZoom()),
-                        null);
+                batch.draw(sprite.getImage(),
+                        screenX, screenY,
+                        tilemap.getTileWidth()  * camara.getZoom(),
+                        tilemap.getTileHeight() * camara.getZoom(),
+                        0, 1, 1, layerOpacity);
             } catch (IOException e) {
-                renderPlaceholder(g2, (int) screenX, (int) screenY,
+                // Para placeholders seguimos usando g2 directo o añadimos método a batch
+                renderPlaceholder(batch.getGraphics(), (int) screenX, (int) screenY,
                         tilemap.getTileWidth(), tilemap.getTileHeight());
             }
         }
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
     }
 
-    private void renderEntities(Graphics2D g2, Scene scene) {
+    private void renderEntities(SpriteBatch batch, Scene scene, float alpha) {
         scene.getEntities().stream()
                 .filter(Entity::isActive)
                 .sorted((a, b) -> {
@@ -133,19 +148,23 @@ public class Renderer {
                     int lb = sb != null ? sb.getLayer() : 0;
                     return Integer.compare(la, lb);
                 })
-                .forEach(entity -> renderEntity(g2, entity));
+                .forEach(entity -> renderEntity(batch, entity, alpha));
     }
 
-    private void renderEntity(Graphics2D g2, Entity entity) {
+    private void renderEntity(SpriteBatch batch, Entity entity, float alpha) {
         Transform transform = entity.getComponent(Transform.class);
         SpriteRenderer sprite = entity.getComponent(SpriteRenderer.class);
         if (transform == null || sprite == null || !sprite.isEnabled()) return;
 
-        if (!camara.isVisible(transform.getX(), transform.getY(),
+        // Posición interpolada
+        float interpX = transform.getInterpolatedX(alpha);
+        float interpY = transform.getInterpolatedY(alpha);
+
+        if (!camara.isVisible(interpX, interpY,
                 sprite.getFrameWidth(), sprite.getFrameHeight())) return;
 
-        float screenX = camara.worldToScreenX(transform.getX());
-        float screenY = camara.worldToScreenY(transform.getY());
+        float screenX = camara.worldToScreenX(interpX);
+        float screenY = camara.worldToScreenY(interpY);
 
         try {
             String imagePath = sprite.getSpritePath();
@@ -156,26 +175,18 @@ public class Renderer {
 
             Sprite spr = Sprite.load(projectPath, imagePath);
 
-            int drawWidth  = (int)(sprite.getFrameWidth() * transform.getScaleX() * camara.getZoom());
-            int drawHeight = (int)(sprite.getFrameHeight() * transform.getScaleY() * camara.getZoom());
+            float drawWidth  = sprite.getFrameWidth() * transform.getScaleX() * camara.getZoom();
+            float drawHeight = sprite.getFrameHeight() * transform.getScaleY() * camara.getZoom();
 
-            AffineTransform at = new AffineTransform();
-            at.translate(screenX, screenY);
-
-            if (transform.getRotation() != 0) {
-                at.rotate(Math.toRadians(transform.getRotation()), drawWidth / 2.0, drawHeight / 2.0);
-            }
-
-            if (sprite.isFlipX()) { at.translate(drawWidth, 0); at.scale(-1, 1); }
-            if (sprite.isFlipY()) { at.translate(0, drawHeight); at.scale(1, -1); }
-
-            AffineTransform original = g2.getTransform();
-            g2.transform(at);
-            g2.drawImage(spr.getImage(), 0, 0, drawWidth, drawHeight, null);
-            g2.setTransform(original);
+            // El SpriteBatch maneja la rotación y escala interna
+            batch.draw(spr.getImage(), screenX, screenY, drawWidth, drawHeight,
+                    transform.getRotation(), 
+                    sprite.isFlipX() ? -1 : 1, 
+                    sprite.isFlipY() ? -1 : 1, 
+                    1.0f);
 
         } catch (IOException e) {
-            renderPlaceholder(g2, (int) screenX, (int) screenY,
+            renderPlaceholder(batch.getGraphics(), (int) screenX, (int) screenY,
                     sprite.getFrameWidth(), sprite.getFrameHeight());
         }
     }
@@ -217,21 +228,21 @@ public class Renderer {
     private float[] resolveAnchor(UIElement element) {
         float x = element.getX();
         float y = element.getY();
-        int w = camara.getViewWidth();
-        int h = camara.getViewHeight();
+        int   w = camara.getViewWidth();
+        int   h = camara.getViewHeight();
         float ew = element.getWidth();
         float eh = element.getHeight();
 
         return switch (element.getAnchor()) {
-            case TOP_LEFT -> new float[]{x, y};
-            case TOP_CENTER -> new float[]{w/2f - ew/2f + x, y};
-            case TOP_RIGHT -> new float[]{w - ew - x, y};
-            case MIDDLE_LEFT -> new float[]{x, h/2f - eh/2f + y };
+            case TOP_LEFT      -> new float[]{x,                y                };
+            case TOP_CENTER    -> new float[]{w/2f - ew/2f + x, y               };
+            case TOP_RIGHT     -> new float[]{w - ew - x,       y               };
+            case MIDDLE_LEFT   -> new float[]{x,                h/2f - eh/2f + y };
             case MIDDLE_CENTER -> new float[]{w/2f - ew/2f + x, h/2f - eh/2f + y};
-            case MIDDLE_RIGHT -> new float[]{w - ew - x, h/2f - eh/2f + y};
-            case BOTTOM_LEFT -> new float[]{x, h - eh - y };
-            case BOTTOM_CENTER -> new float[]{w/2f - ew/2f + x, h - eh - y};
-            case BOTTOM_RIGHT -> new float[]{w - ew - x, h - eh - y};
+            case MIDDLE_RIGHT  -> new float[]{w - ew - x,       h/2f - eh/2f + y};
+            case BOTTOM_LEFT   -> new float[]{x,                h - eh - y       };
+            case BOTTOM_CENTER -> new float[]{w/2f - ew/2f + x, h - eh - y      };
+            case BOTTOM_RIGHT  -> new float[]{w - ew - x,       h - eh - y      };
         };
     }
 

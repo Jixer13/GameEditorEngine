@@ -29,9 +29,12 @@ public class PanelAssets extends JPanel {
     private DefaultMutableTreeNode nodoSeleccionado;
     private File carpetaActual;
 
-    private final File   carpetaProyectos;
-    private final File   rutaProyecto;
+    private File   carpetaProyectos;
+    private File   rutaProyecto;
     private final PanelCanvas canvas;         // referencia al visor central
+
+    private EditorController controller;
+    private PanelProperties panelProperties;
 
     // ==================== CONSTRUCTOR ====================
     public PanelAssets(File rutaProyecto, File carpetaProyectos,
@@ -42,6 +45,22 @@ public class PanelAssets extends JPanel {
         setOpaque(false);
         setLayout(new BorderLayout());
         construirUI();
+    }
+
+    /** Llamar desde Editor tras construir todos los paneles */
+    public void init(EditorController controller, PanelProperties panelProperties) {
+        this.controller      = controller;
+        this.panelProperties = panelProperties;
+    }
+
+    /**
+     * Cambia la carpeta raíz que muestra el explorador.
+     * Útil cuando se abre o crea un nuevo proyecto.
+     */
+    public void setRootDirectory(File newRoot) {
+        this.carpetaProyectos = newRoot;
+        refrescarArbol();
+        labelInfo.setText("Proyecto: " + newRoot.getName());
     }
 
     // ==================== CONSTRUCCIÓN UI ====================
@@ -162,7 +181,7 @@ public class PanelAssets extends JPanel {
         if (n.endsWith(".json"))                             return "⚙";
         if (n.endsWith(".xml"))                              return "🏷";
         if (n.endsWith(".wav")  || n.endsWith(".mp3")
-         || n.endsWith(".ogg"))                              return "🔊";
+         || n.endsWith(".ogg")  || n.endsWith(".mp4"))       return "🔊";
         return "📋";
     }
 
@@ -170,20 +189,25 @@ public class PanelAssets extends JPanel {
     private void procesarNodoSeleccionado(DefaultMutableTreeNode nodo) {
         String nombreNodo = nodo.getUserObject().toString();
         String nombre     = nombreNodo.replaceAll("[^\\w\\-. ]", "").trim();
+        File archivo      = obtenerRutaArchivo(nodo);
 
         if (nombreNodo.contains("📁") || nombreNodo.contains("🎮")) {
-            carpetaActual = obtenerRutaArchivo(nodo);
+            carpetaActual = archivo;
             labelInfo.setText("📁 Carpeta: " + nombre);
+            if (panelProperties != null) panelProperties.limpiar();
 
-        } else if (nombreNodo.contains("🖼")) {
-            // ──> Enviar imagen al canvas central
-            File archivoImagen = obtenerRutaArchivo(nodo);
-            labelInfo.setText("🖼 Imagen: " + nombre);
-            if (canvas != null && archivoImagen.exists()) {
-                canvas.mostrarImagen(archivoImagen);
-            }
         } else {
-            labelInfo.setText("📄 Archivo: " + nombre);
+            labelInfo.setText((nombreNodo.contains("🖼") ? "🖼 Imagen: " : "📄 Archivo: ") + nombre);
+            
+            // Notificar a propiedades
+            if (panelProperties != null && archivo.exists()) {
+                panelProperties.mostrarAsset(archivo);
+            }
+
+            // Si es imagen, previsualizar en canvas
+            if (nombreNodo.contains("🖼") && canvas != null && archivo.exists()) {
+                canvas.mostrarImagen(archivo);
+            }
         }
     }
 

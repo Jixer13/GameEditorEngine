@@ -30,26 +30,28 @@ public class Toolbar extends JPanel {
     // ==================== CONSTRUCTOR ====================
     public Toolbar(Editor editor) {
         this.editor = editor;
-        setOpaque(false);
+        setOpaque(true); // Hacer el toolbar opaco para que pinte su fondo
+        setBackground(Color.MENUBAR_BACKGROUND); // Asignar color de fondo consistente
+        setPreferredSize(new Dimension(0, MENUBAR_ALTO)); // Asegurar altura para BorderLayout
         setLayout(null);
     }
 
     // ==================== BOUNDS DE BOTONES ====================
     public Rectangle btnMinBounds() {
-        int x = getX() + getWidth() - BTN_ANCHO * 3 - 6;
-        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        int x = getWidth() - BTN_ANCHO * 3 - 6;
+        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
         return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
     }
 
     public Rectangle btnMaxBounds() {
-        int x = getX() + getWidth() - BTN_ANCHO * 2 - 6;
-        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        int x = getWidth() - BTN_ANCHO * 2 - 6;
+        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
         return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
     }
 
     public Rectangle btnCerrarBounds() {
-        int x = getX() + getWidth() - BTN_ANCHO - 6;
-        int y = getY() + (MENUBAR_ALTO - BTN_ALTO) / 2;
+        int x = getWidth() - BTN_ANCHO - 6;
+        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
         return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
     }
 
@@ -65,11 +67,17 @@ public class Toolbar extends JPanel {
             btnCerrarHover    = dentroCerrar;
             btnMaximizarHover = dentroMax;
             btnMinimizarHover = dentroMin;
-            editor.getRaizPanel().repaint();
+            repaint(); // Repintar solo el toolbar para mayor eficiencia
         }
     }
 
     // ==================== PINTADO ====================
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g); // Pinta el fondo MENUBAR_BACKGROUND
+        pintarBotones((Graphics2D) g, editor.isMaximizado());
+    }
+
     public void pintarBotones(Graphics2D g2, boolean maximizado) {
         pintarBotonMinimizar(g2);
         pintarBotonMaximizar(g2, maximizado);

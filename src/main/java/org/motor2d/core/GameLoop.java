@@ -53,35 +53,91 @@ public class GameLoop implements Runnable {
     public void run() {
         Time.start();
         
-        // Configuración de FPS
-        double targetFPS = project.getConfiguration().getFps();
-        double nsPerFrame = 1_000_000_000.0 / targetFPS;
+        // Configuración de Timestep
+        double targetUPS = project.getConfiguration().getFps(); // Updates per second (Fixed)
+        double nsPerUpdate = 1_000_000_000.0 / targetUPS;
+        
         long lastTime = System.nanoTime();
-        double delta = 0;
+        double accumulator = 0;
 
         while (running) {
             long now = System.nanoTime();
-            delta += (now - lastTime) / nsPerFrame;
+            double elapsed = now - lastTime;
             lastTime = now;
+            
+            // Evitar el "espiral de la muerte" si el proceso se bloquea
+            if (elapsed > 250_000_000) elapsed = 250_000_000;
+            
+            accumulator += elapsed;
 
-            // Bloque de actualización lógica (Físicas)
-            while (delta >= 1) {
-                Time.update();
+            // Bloque de actualización lógica (Fixed Timestep)
+            while (accumulator >= nsPerUpdate) {
+                float fixedDelta = (float)(nsPerUpdate / 1_000_000_000.0);
+                // Actualizamos el tiempo global con el paso fijo
+                Time.setFixedDeltaTime(fixedDelta);
+                
+                // Actualizamos estados previos para interpolación (DOD)
+                if (scene != null && scene.getTransformSystem() != null) {
+                    scene.getTransformSystem().updatePrevious();
+                }
+                
+                // 1. Lógica de Usuario (Behaviors)
+                if (scene != null) {
+                    for (org.motor2d.model.Entity entity : scene.getEntities()) {
+                        if (!entity.isActive()) continue;
+                        
+                        // Procesar Scripts/Comportamientos
+                        for (org.motor2d.model.components.Component comp : entity.getComponents()) {
+                            if (comp instanceof org.motor2d.model.components.Behavior behavior && comp.isEnabled()) {
+                                if (!behavior.isStarted()) {
+                                    behavior.start();
+                                    behavior.setStarted(true);
+                                }
+                                behavior.update();
+                            }
+                            
+                            // 2. Actualizar Animaciones
+                            if (comp instanceof org.motor2d.model.components.Animation animation && comp.isEnabled()) {
+                                animation.update(fixedDelta);
+                            }
+                        }
+                    }
+                }
+                
                 physics.update(scene);
-                delta--;
+                
+                // 3. Actualizar Cámara
+                if (renderer != null && renderer.getCamara() != null) {
+                    renderer.getCamara().update(fixedDelta);
+                    // Opcional: Clampear a los límites de la escena
+                    if (scene != null) {
+                        renderer.getCamara().clampToBounds(scene.getWidth(), scene.getHeight());
+                    }
+                }
+                
+                accumulator -= nsPerUpdate;
             }
 
-            // Bloque de renderizado: Solicitamos a Swing que repinte el panel
+            // Cálculo de interpolación (Alpha) para el renderizado
+            float alpha = (float) (accumulator / nsPerUpdate);
+
+            // Bloque de renderizado
             if (canvas != null) {
+                // Pasamos el alpha al renderizado a través de una variable volátil o similar
+                // Para este motor simple, podemos guardarlo en Time o pasarlo al render
+                Time.setInterpolation(alpha);
                 canvas.repaint();
             }
 
-            // Sincronización del estado de entrada (Input)
+            // Sincronizamos el estado de la entrada para el próximo frame
             InputManager.update();
 
-            // Pausa mínima para no saturar la CPU
+            // Control de carga de CPU
             try {
-                Thread.sleep(1);
+                // Intentamos dejar un poco de aire al sistema
+                long sleepTime = (long)((nsPerUpdate - (System.nanoTime() - now)) / 1_000_000);
+                if (sleepTime > 0) Thread.sleep(sleepTime);
+                else Thread.yield();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

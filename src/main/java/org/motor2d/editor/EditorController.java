@@ -172,9 +172,79 @@ public class EditorController {
     public boolean isProjectOpen() { return projectManager.isProjectOpen(); }
     public boolean isSceneOpen()   { return sceneManager.isSceneOpen();     }
     public String getProjectPath() { return projectManager.getCurrentProjectPath(); }
-    
+
+    public String getCurrentSceneName() {
+        return sceneManager.isSceneOpen() ? sceneManager.getCurrentScene().getName() : "";
+    }
+
     public ProjectManager getProjectManager() { return projectManager; }
     public SceneManager getSceneManager() { return sceneManager; }
+
+    // ==================== HELPERS PARA PANELES ====================
+
+    public List<Entity> getAllEntities() {
+        try { return entityManager.getAllEntities(); }
+        catch (Exception e) { return List.of(); }
+    }
+
+    public Entity createSpriteEntity(String name, String spritePath) {
+        try { return entityManager.createSpriteEntity(name, spritePath); }
+        catch (Exception e) { mostrarError("Error al crear entidad", e.getMessage()); return null; }
+    }
+
+    public boolean removeEntity(Entity entity) {
+        try { entityManager.removeEntity(entity); return true; }
+        catch (Exception e) { mostrarError("Error al eliminar entidad", e.getMessage()); return false; }
+    }
+
+    public Entity duplicateEntity(Entity entity) {
+        try { return entityManager.duplicateEntity(entity); }
+        catch (Exception e) { mostrarError("Error al duplicar entidad", e.getMessage()); return null; }
+    }
+
+    public boolean createScene(String name) {
+        try { sceneManager.createScene(name); return true; }
+        catch (Exception e) { mostrarError("Error al crear escena", e.getMessage()); return false; }
+    }
+
+    public boolean loadScene(String name) {
+        try {
+            sceneManager.loadScene(name);
+            inicializarMotor();
+            return true;
+        } catch (Exception e) { mostrarError("Error al cargar escena", e.getMessage()); return false; }
+    }
+
+    public List<String> listScenes() {
+        try { return sceneManager.listScenes(); }
+        catch (Exception e) { return List.of(); }
+    }
+
+    public List<String> listSprites() {
+        try {
+            String projectPath = getProjectPath();
+            if (projectPath == null) return List.of();
+            File assetsDir = new File(projectPath, "Assets");
+            if (!assetsDir.exists()) return List.of();
+            java.util.List<String> result = new java.util.ArrayList<>();
+            buscarImagenes(assetsDir, assetsDir, result);
+            return result;
+        } catch (Exception e) { return List.of(); }
+    }
+
+    private void buscarImagenes(File base, File dir, java.util.List<String> result) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) { buscarImagenes(base, f, result); }
+            else {
+                String name = f.getName().toLowerCase();
+                if (name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+                    result.add(base.toURI().relativize(f.toURI()).getPath());
+                }
+            }
+        }
+    }
 
     private void mostrarError(String titulo, String mensaje) {
         JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.ERROR_MESSAGE);

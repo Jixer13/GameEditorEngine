@@ -9,30 +9,35 @@ import java.io.File;
 
 /**
  * Editor - Ventana principal del Motor 2D.
- * <p>
- * Orquesta la interfaz gráfica dividida en módulos:
- * - Toolbar: Controles de ventana y herramientas.
- * - PanelHierarchy: Lista de entidades de la escena.
- * - PanelCanvas: Visor central del juego/assets.
- * - PanelProperties: Edición de componentes.
- * - PanelAssets: Explorador de archivos del proyecto.
+ *
+ * Layout con JSplitPane para permitir redimensionado arrastrando divisores:
+ *
+ *  ┌──────────────────────────────────────────────────┐
+ *  │                   Toolbar                        │
+ *  ├──────────┬───────────────────────┬───────────────┤
+ *  │          │                       │               │
+ *  │Hierarchy │       Canvas          │  Properties   │
+ *  │          │                       │               │
+ *  ├──────────┴───────────────────────┤               │
+ *  │           Assets                 │               │
+ *  └──────────────────────────────────┴───────────────┘
  */
 public class Editor extends JFrame {
 
-    // ==================== CONSTANTES DE DISEÑO ====================
+    // ==================== CONSTANTES ====================
     private static final int WINDOW_WIDTH  = 1400;
     private static final int WINDOW_HEIGHT = 900;
-    private static final int DIVIDER       = 1;
     private static final int PANEL_IZQ_W   = 250;
     private static final int PANEL_DER_W   = 300;
-    private static final int PANEL_INF_H   = 250;
+    private static final int PANEL_INF_H   = 220;
     private static final String CARPETA_PROYECTOS = "Proyectos";
 
-    // ==================== ESTADO Y COMPONENTES ====================
+    // ==================== ESTADO ====================
     private int mouseX, mouseY;
     private boolean maximizado = false;
     private Rectangle estadoAnterior;
 
+    // ==================== COMPONENTES ====================
     private JPanel          raizPanel;
     private Toolbar         toolbar;
     private PanelHierarchy  panelHierarchy;
@@ -40,39 +45,38 @@ public class Editor extends JFrame {
     private PanelProperties panelProperties;
     private PanelAssets     panelAssets;
 
-    // Cerebro del editor
+    // Split panes principales
+    private JSplitPane splitCentroPropiedad;  // canvas|properties
+    private JSplitPane splitIzqCentro;        // hierarchy | (canvas+props)
+    private JSplitPane splitVertical;         // (hierarchy+canvas+props) | assets
+
     private EditorController controller;
-    
     private File rutaProyecto;
     private File carpetaProyectos;
 
     // ==================== CONSTRUCTOR ====================
     public Editor() {
-        // Inicialización de datos
-        rutaProyecto      = obtenerRutaProyecto();
-        carpetaProyectos  = inicializarCarpetaProyectos();
-        controller        = new EditorController();
+        rutaProyecto     = obtenerRutaProyecto();
+        carpetaProyectos = inicializarCarpetaProyectos();
+        controller       = new EditorController();
 
-        // Configuración de la ventana (JFrame)
         setUndecorated(true);
         setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        setResizable(true);
 
         construirUI();
         setVisible(true);
     }
 
-    // ==================== LÓGICA DE INICIALIZACIÓN ====================
-    
+    // ==================== INICIALIZACIÓN ====================
     private File obtenerRutaProyecto() {
         File dir = new File(System.getProperty("user.dir"));
-        while (dir != null && !dir.getAbsolutePath().endsWith("src"))
-            dir = dir.getParentFile();
-        if (dir != null && dir.getName().equals("src"))
-            dir = dir.getParentFile();
-        return (dir != null && new File(dir, "pom.xml").exists()) ? dir : new File(System.getProperty("user.dir"));
+        while (dir != null && !dir.getName().equals("src")) dir = dir.getParentFile();
+        if (dir != null) dir = dir.getParentFile();
+        return (dir != null && new File(dir, "pom.xml").exists())
+                ? dir : new File(System.getProperty("user.dir"));
     }
 
     private File inicializarCarpetaProyectos() {
@@ -81,112 +85,119 @@ public class Editor extends JFrame {
         return carpeta;
     }
 
-    // ==================== CONSTRUCCIÓN DE LA INTERFAZ ====================
+    // ==================== CONSTRUCCIÓN UI ====================
     private void construirUI() {
-        // Inicializamos los paneles modulares
-        toolbar         = new Toolbar(this);
         panelHierarchy  = new PanelHierarchy();
         panelProperties = new PanelProperties();
         panelCanvas     = new PanelCanvas();
         panelAssets     = new PanelAssets(rutaProyecto, carpetaProyectos, panelCanvas);
-        
-        // Vinculamos el canvas al controlador para que el motor sepa dónde dibujar
+        toolbar         = new Toolbar(this);
+
+        panelHierarchy.init(controller, panelProperties);
+        panelAssets.init(controller, panelProperties);
         controller.setCanvas(panelCanvas);
 
-        // Panel principal con gestor de dibujado personalizado
-        raizPanel = new JPanel(null) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                
-                // Fondo general
-                g2.setColor(Color.BACKGROUND);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+        // ── 1. Canvas + Assets (vertical) ──
+        splitVertical = crearSplit(
+                JSplitPane.VERTICAL_SPLIT,
+                panelCanvas,
+                panelAssets,
+                WINDOW_HEIGHT - PANEL_INF_H);
 
-                // Dibujado de las zonas de fondo de los paneles
-                pintarZona(g2, toolbar,         Color.MENUBAR_BACKGROUND);
-                pintarZona(g2, panelHierarchy,  Color.BACKGROUND);
-                pintarZona(g2, panelCanvas,     Color.CANVAS_COLOR);
-                pintarZona(g2, panelProperties, Color.BACKGROUND);
-                pintarZona(g2, panelAssets,     Color.BACKGROUND);
+        // ── 2. Hierarchy | (canvas+assets) ──
+        splitIzqCentro = crearSplit(
+                JSplitPane.HORIZONTAL_SPLIT,
+                panelHierarchy,
+                splitVertical,
+                PANEL_IZQ_W);
 
-                // Los botones de la barra de título se pintan al final
-                toolbar.pintarBotones(g2, maximizado);
-                g2.dispose();
-            }
-        };
+        // ── 3. (hierarchy+canvas+assets) | Properties ──
+        splitCentroPropiedad = crearSplit(
+                JSplitPane.HORIZONTAL_SPLIT,
+                splitIzqCentro,
+                panelProperties,
+                WINDOW_WIDTH - PANEL_DER_W);
+
+        // ── Panel raíz: Toolbar + splits ──
+        raizPanel = new JPanel(new BorderLayout());
         raizPanel.setBackground(Color.BACKGROUND);
-
-        // Añadimos los componentes al panel raíz
-        raizPanel.add(toolbar);
-        raizPanel.add(panelHierarchy);
-        raizPanel.add(panelCanvas);
-        raizPanel.add(panelProperties);
-        raizPanel.add(panelAssets);
+        raizPanel.add(toolbar, BorderLayout.NORTH);
+        raizPanel.add(splitCentroPropiedad, BorderLayout.CENTER);
 
         registrarEventosVentana();
-
-        // Escuchador para reajustar el tamaño de los paneles al redimensionar
-        raizPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                distribuirPaneles(raizPanel.getWidth(), raizPanel.getHeight());
-                raizPanel.repaint();
-            }
-        });
-
-        distribuirPaneles(WINDOW_WIDTH, WINDOW_HEIGHT);
         add(raizPanel);
     }
 
-    // ==================== SISTEMA DE LAYOUT MANUAL ====================
-    private void distribuirPaneles(int W, int H) {
-        int barH   = Toolbar.getAlto();
-        int panelY = barH + DIVIDER;
-        int totalH = H - panelY;
-        int cenX   = PANEL_IZQ_W + DIVIDER;
-        int cenW   = W - PANEL_IZQ_W - PANEL_DER_W - DIVIDER * 2;
-        int areaH  = totalH - PANEL_INF_H - DIVIDER;
+    /** Crea un JSplitPane con el estilo oscuro del editor */
+    private JSplitPane crearSplit(int orientation, Component a, Component b,
+                                   int dividerPos) {
+        JSplitPane split = new JSplitPane(orientation, a, b);
+        split.setDividerSize(4);
+        split.setDividerLocation(dividerPos);
+        split.setBorder(null);
+        split.setBackground(Color.BORDER_COLOR);
+        split.setContinuousLayout(true);
+        split.setResizeWeight(orientation == JSplitPane.HORIZONTAL_SPLIT ? 0.0 : 1.0);
 
-        toolbar        .setBounds(0,              0,       W,            barH);
-        panelHierarchy .setBounds(0,              panelY,  PANEL_IZQ_W, areaH);
-        panelCanvas    .setBounds(cenX,           panelY,  cenW,        areaH);
-        panelProperties.setBounds(W - PANEL_DER_W, panelY, PANEL_DER_W, totalH);
-        panelAssets    .setBounds(0,    panelY + areaH + DIVIDER,
-                                  cenX + cenW,  PANEL_INF_H);
+        // Estilo del divisor
+        split.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
+            @Override
+            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
+                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+                    @Override
+                    public void paint(Graphics g) {
+                        g.setColor(Color.BORDER_COLOR);
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                    }
+
+                    @Override
+                    public Dimension getPreferredSize() {
+                        return orientation == JSplitPane.HORIZONTAL_SPLIT
+                                ? new Dimension(4, 0)
+                                : new Dimension(0, 4);
+                    }
+                };
+            }
+        });
+
+        return split;
     }
 
-    private void pintarZona(Graphics2D g2, JPanel panel, java.awt.Color bg) {
-        if (panel == null) return;
-        int x = panel.getX(), y = panel.getY(),
-            w = panel.getWidth(), h = panel.getHeight();
-        g2.setColor(bg);
-        g2.fillRect(x, y, w, h);
-        g2.setColor(Color.BORDER_COLOR);
-        g2.setStroke(new BasicStroke(1f));
-        g2.drawRect(x, y, w - 1, h - 1);
+    // ==================== TOGGLE PANELES ====================
+
+    /** Colapsa o expande el panel Hierarchy */
+    public void toggleHierarchy() {
+        boolean visible = splitIzqCentro.getDividerLocation() > 10;
+        splitIzqCentro.setDividerLocation(visible ? 0 : PANEL_IZQ_W);
     }
 
-    // ==================== EVENTOS DE VENTANA (ARRASTRE Y BOTONES) ====================
+    /** Colapsa o expande el panel Properties */
+    public void toggleProperties() {
+        int total = splitCentroPropiedad.getWidth();
+        boolean visible = splitCentroPropiedad.getDividerLocation() < total - 10;
+        splitCentroPropiedad.setDividerLocation(visible ? total : total - PANEL_DER_W);
+    }
+
+    /** Colapsa o expande el panel Assets */
+    public void toggleAssets() {
+        int total = splitVertical.getHeight();
+        boolean visible = splitVertical.getDividerLocation() < total - 10;
+        splitVertical.setDividerLocation(visible ? total : total - PANEL_INF_H);
+    }
+
+    // ==================== EVENTOS VENTANA ====================
     private void registrarEventosVentana() {
         raizPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                mouseX = e.getX();
-                mouseY = e.getY();
+                mouseX = e.getX(); mouseY = e.getY();
             }
-
             @Override
             public void mouseClicked(MouseEvent e) {
                 Point p = e.getPoint();
-                if (toolbar.btnMinBounds().contains(p)) {
-                    setState(JFrame.ICONIFIED);
-                } else if (toolbar.btnMaxBounds().contains(p)) {
-                    alternarMaximizar();
-                } else if (toolbar.btnCerrarBounds().contains(p)) {
-                    System.exit(0);
-                }
+                if (toolbar.btnMinBounds().contains(p))    setState(JFrame.ICONIFIED);
+                else if (toolbar.btnMaxBounds().contains(p)) alternarMaximizar();
+                else if (toolbar.btnCerrarBounds().contains(p)) confirmarCerrar();
             }
         });
 
@@ -197,11 +208,13 @@ public class Editor extends JFrame {
                         && !toolbar.btnCerrarBounds().contains(e.getPoint())
                         && !toolbar.btnMaxBounds().contains(e.getPoint())
                         && !toolbar.btnMinBounds().contains(e.getPoint())) {
-                    setLocation(e.getXOnScreen() - mouseX,
-                                e.getYOnScreen() - mouseY);
+                    // Solo arrastrar desde la toolbar
+                    if (e.getY() <= Toolbar.getAlto()) {
+                        setLocation(e.getXOnScreen() - mouseX,
+                                    e.getYOnScreen() - mouseY);
+                    }
                 }
             }
-
             @Override
             public void mouseMoved(MouseEvent e) {
                 toolbar.actualizarHover(e.getPoint());
@@ -213,7 +226,7 @@ public class Editor extends JFrame {
         if (!maximizado) {
             estadoAnterior = new Rectangle(getX(), getY(), getWidth(), getHeight());
             Rectangle pantalla = GraphicsEnvironment.getLocalGraphicsEnvironment()
-                                .getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+                    .getDefaultScreenDevice().getDefaultConfiguration().getBounds();
             setBounds(pantalla);
             maximizado = true;
         } else {
@@ -223,14 +236,32 @@ public class Editor extends JFrame {
         repaint();
     }
 
-    // ==================== GETTERS ====================
-    public EditorController getController() { return controller; }
-    public PanelCanvas getPanelCanvas() { return panelCanvas; }
-    public JPanel getRaizPanel() { return raizPanel; }
+    private void confirmarCerrar() {
+        if (controller.isProjectOpen()) {
+            int r = JOptionPane.showConfirmDialog(this,
+                    "¿Guardar el proyecto antes de salir?",
+                    "Salir", JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            if (r == JOptionPane.CANCEL_OPTION) return;
+            if (r == JOptionPane.YES_OPTION)    controller.saveProject();
+        }
+        System.exit(0);
+    }
 
-    // ==================== PUNTO DE ENTRADA ====================
+    // ==================== GETTERS ====================
+    public boolean isMaximizado()        { return maximizado;      }
+    public EditorController getController()      { return controller;      }
+    public EditorController getEditorController(){ return controller;      }
+    public PanelCanvas      getPanelCanvas()     { return panelCanvas;     }
+    public PanelAssets      getPanelAssets()     { return panelAssets;     }
+    public JPanel           getRaizPanel()       { return raizPanel;       }
+
+    public void refrescarHierarchy() {
+        SwingUtilities.invokeLater(() -> panelHierarchy.refrescar());
+    }
+
+    // ==================== MAIN ====================
     public static void main(String[] args) {
-        // Aseguramos escalado correcto en pantallas de alta densidad
         System.setProperty("sun.java2d.uiScale", "1.0");
         SwingUtilities.invokeLater(Editor::new);
     }

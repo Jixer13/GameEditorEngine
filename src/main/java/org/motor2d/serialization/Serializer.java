@@ -37,7 +37,8 @@ public class Serializer {
                 Transform.class,
                 SpriteRenderer.class,
                 Collider.class,
-                Animation.class
+                Animation.class,
+                Behavior.class
         );
 
         // Subtipos de UIElement
@@ -46,6 +47,10 @@ public class Serializer {
                 UIButton.class,
                 UIImage.class
         );
+    }
+
+    public ObjectMapper getMapper() {
+        return mapper;
     }
 
     // CREAR PROYECTO NUEVO

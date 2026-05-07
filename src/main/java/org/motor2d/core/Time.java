@@ -26,32 +26,27 @@ public class Time {
         fpsTimer = 0f;
     }
 
+    private static float fixedDeltaTime = 0.016f;
+    private static float interpolation = 0f;
+
     /**
-     * Actualiza los contadores de tiempo. Debe llamarse en cada frame.
+     * Establece el delta de tiempo fijo para la física.
      */
-    public static void update() {
-        long now = System.nanoTime();
-        // Conversión de nanosegundos a segundos
-        deltaTime = (now - lastFrameTime) / 1_000_000_000f;
-        lastFrameTime = now;
-
-        // Cap para evitar saltos enormes si el motor se congela (mínimo 20 FPS)
-        deltaTime = Math.min(deltaTime, 0.05f);
-
-        totalTime += deltaTime;
-        fpsTimer += deltaTime;
-        frameCount++;
-
-        // Cálculo de FPS cada segundo
-        if (fpsTimer >= 1f) {
-            fps = frameCount;
-            frameCount = 0;
-            fpsTimer -= 1f;
-        }
+    public static void setFixedDeltaTime(float dt) {
+        fixedDeltaTime = dt;
+        totalTime += dt;
+        // Opcional: actualizar contadores de FPS aquí o en el render
     }
 
-    // ==================== GETTERS ====================
-    public static float getDeltaTime() { return deltaTime; }
+    /**
+     * Establece el factor de interpolación para el renderizado.
+     */
+    public static void setInterpolation(float alpha) {
+        interpolation = alpha;
+    }
+
+    public static float getFixedDeltaTime() { return fixedDeltaTime; }
+    public static float getInterpolation() { return interpolation; }
     public static float getTotalTime() { return totalTime; }
     public static int getFps() { return fps; }
 }

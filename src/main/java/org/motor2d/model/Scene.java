@@ -14,6 +14,8 @@ public class Scene {
     private String backgroundColor;
     private int width;
     private int height;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private final org.motor2d.ecs.TransformSystem transformSystem;
 
     //default
     public Scene() {
@@ -25,7 +27,11 @@ public class Scene {
         this.backgroundColor = "#FFFFFF";
         this.width = 3000;
         this.height = 1000;
+        this.transformSystem = new org.motor2d.ecs.TransformSystem();
+    }
 
+    public org.motor2d.ecs.TransformSystem getTransformSystem() {
+        return transformSystem;
     }
 
     public Scene(String name, ArrayList<Entity> entities, ArrayList<UIElement> uiElements, Tilemap tilemap,
@@ -38,6 +44,7 @@ public class Scene {
         this.backgroundColor = backgroundColor;
         this.width = width;
         this.height = height;
+        this.transformSystem = new org.motor2d.ecs.TransformSystem();
     }
 
     public String getName() {
