@@ -1,5 +1,6 @@
 package org.motor2d.editor;
 
+import org.motor2d.model.Entity;
 import org.motor2d.utilities.Color;
 import javax.swing.*;
 import java.awt.*;
@@ -44,6 +45,7 @@ public class Editor extends JFrame {
     private PanelCanvas     panelCanvas;
     private PanelProperties panelProperties;
     private PanelAssets     panelAssets;
+    private StatusBar       statusBar;
 
     // Split panes principales
     private JSplitPane splitCentroPropiedad;  // canvas|properties
@@ -53,14 +55,26 @@ public class Editor extends JFrame {
     private EditorController controller;
     private File rutaProyecto;
     private File carpetaProyectos;
+// ==================== ACTUALIZAR TITULO ====================
+public void actualizarTitulo() {
+    String nombreProyecto = (controller.isProjectOpen()) 
+                            ? controller.getProjectManager().getCurrentProject().getName() 
+                            : "Sin proyecto";
+    setTitle("Motor 2D - " + nombreProyecto);
+}
 
-    // ==================== CONSTRUCTOR ====================
-    public Editor() {
-        rutaProyecto     = obtenerRutaProyecto();
-        carpetaProyectos = inicializarCarpetaProyectos();
-        controller       = new EditorController();
+// ... en constructor ...
+public Editor() {
+    rutaProyecto     = obtenerRutaProyecto();
+    carpetaProyectos = inicializarCarpetaProyectos();
+    controller       = new EditorController();
+    controller.setEditor(this);
 
-        setUndecorated(true);
+    actualizarTitulo(); // Llamada inicial
+
+    setUndecorated(true);
+    // ... el resto sigue igual ...
+
         setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -90,11 +104,18 @@ public class Editor extends JFrame {
         panelHierarchy  = new PanelHierarchy();
         panelProperties = new PanelProperties();
         panelCanvas     = new PanelCanvas();
-        panelAssets     = new PanelAssets(rutaProyecto, carpetaProyectos, panelCanvas);
+        
+        // Inicializar con la ruta del proyecto si está abierto
+        File assetsDir = controller.isProjectOpen() 
+                         ? new File(controller.getProjectPath(), "assets") 
+                         : carpetaProyectos;
+        panelAssets     = new PanelAssets(rutaProyecto, assetsDir, panelCanvas);
         toolbar         = new Toolbar(this);
+        statusBar       = new StatusBar();
 
         panelHierarchy.init(controller, panelProperties);
-        panelAssets.init(controller, panelProperties);
+        panelAssets.init(controller, panelProperties, this);
+        panelCanvas.init(controller);
         controller.setCanvas(panelCanvas);
 
         // ── 1. Canvas + Assets (vertical) ──
@@ -102,7 +123,8 @@ public class Editor extends JFrame {
                 JSplitPane.VERTICAL_SPLIT,
                 panelCanvas,
                 panelAssets,
-                WINDOW_HEIGHT - PANEL_INF_H);
+                WINDOW_HEIGHT - PANEL_INF_H - Toolbar.getAlto());
+        splitVertical.setResizeWeight(0.8); // Canvas se lleva el 80% al redimensionar
 
         // ── 2. Hierarchy | (canvas+assets) ──
         splitIzqCentro = crearSplit(
@@ -110,6 +132,7 @@ public class Editor extends JFrame {
                 panelHierarchy,
                 splitVertical,
                 PANEL_IZQ_W);
+        splitIzqCentro.setResizeWeight(0.1);
 
         // ── 3. (hierarchy+canvas+assets) | Properties ──
         splitCentroPropiedad = crearSplit(
@@ -117,27 +140,45 @@ public class Editor extends JFrame {
                 splitIzqCentro,
                 panelProperties,
                 WINDOW_WIDTH - PANEL_DER_W);
+        splitCentroPropiedad.setResizeWeight(0.9);
 
-        // ── Panel raíz: Toolbar + splits ──
+        // ── Panel raíz: Toolbar (North), SplitPane (Center), StatusBar (South) ──
         raizPanel = new JPanel(new BorderLayout());
         raizPanel.setBackground(Color.BACKGROUND);
         raizPanel.add(toolbar, BorderLayout.NORTH);
         raizPanel.add(splitCentroPropiedad, BorderLayout.CENTER);
+        raizPanel.add(statusBar, BorderLayout.SOUTH);
 
         registrarEventosVentana();
         add(raizPanel);
+        
+        actualizarStatusBar();
+    }
+
+    public void actualizarStatusBar() {
+        if (controller.isProjectOpen()) {
+            statusBar.setInfoProyecto("Proyecto: " + controller.getProjectManager().getCurrentProject().getName() + 
+                                     " | " + controller.getProjectPath());
+            statusBar.mostrarMensajePermanente("Listo");
+        } else {
+            statusBar.setInfoProyecto("Ningún proyecto abierto");
+            statusBar.mostrarMensajePermanente("Inicie o abra un proyecto para comenzar");
+        }
+    }
+
+    public void mostrarMensajeEstado(String msg) {
+        if (statusBar != null) statusBar.mostrarMensaje(msg, 3000);
     }
 
     /** Crea un JSplitPane con el estilo oscuro del editor */
     private JSplitPane crearSplit(int orientation, Component a, Component b,
                                    int dividerPos) {
         JSplitPane split = new JSplitPane(orientation, a, b);
-        split.setDividerSize(4);
+        split.setDividerSize(6); // Divisor un poco más grueso para que sea más fácil de agarrar
         split.setDividerLocation(dividerPos);
         split.setBorder(null);
         split.setBackground(Color.BORDER_COLOR);
         split.setContinuousLayout(true);
-        split.setResizeWeight(orientation == JSplitPane.HORIZONTAL_SPLIT ? 0.0 : 1.0);
 
         // Estilo del divisor
         split.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
@@ -148,13 +189,22 @@ public class Editor extends JFrame {
                     public void paint(Graphics g) {
                         g.setColor(Color.BORDER_COLOR);
                         g.fillRect(0, 0, getWidth(), getHeight());
+                        // Dibujar una pequeña marca en el centro
+                        g.setColor(Color.TEXT_SECONDARY);
+                        if (orientation == JSplitPane.HORIZONTAL_SPLIT) {
+                            int mid = getHeight() / 2;
+                            g.fillRect(2, mid - 10, 2, 20);
+                        } else {
+                            int mid = getWidth() / 2;
+                            g.fillRect(mid - 10, 2, 20, 2);
+                        }
                     }
 
                     @Override
                     public Dimension getPreferredSize() {
                         return orientation == JSplitPane.HORIZONTAL_SPLIT
-                                ? new Dimension(4, 0)
-                                : new Dimension(0, 4);
+                                ? new Dimension(6, 0)
+                                : new Dimension(0, 6);
                     }
                 };
             }
@@ -258,6 +308,21 @@ public class Editor extends JFrame {
 
     public void refrescarHierarchy() {
         SwingUtilities.invokeLater(() -> panelHierarchy.refrescar());
+    }
+
+    /**
+     * Selecciona una entidad en los paneles de Hierarchy y Properties.
+     * Invocado usualmente por EditorController cuando se selecciona algo en el Canvas.
+     */
+    public void seleccionarEntidadEnUI(Entity entidad) {
+        SwingUtilities.invokeLater(() -> {
+            panelHierarchy.seleccionarEntidad(entidad);
+            if (entidad != null) {
+                panelProperties.mostrarEntidad(entidad, controller);
+            } else {
+                panelProperties.limpiar();
+            }
+        });
     }
 
     // ==================== MAIN ====================

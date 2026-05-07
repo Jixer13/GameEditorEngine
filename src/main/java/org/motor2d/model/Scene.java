@@ -1,5 +1,6 @@
 package org.motor2d.model;
 
+import org.motor2d.ecs.TransformSystem;
 import org.motor2d.model.ui.UIElement;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ public class Scene {
     private int width;
     private int height;
     @com.fasterxml.jackson.annotation.JsonIgnore
-    private final org.motor2d.ecs.TransformSystem transformSystem;
+    private final TransformSystem transformSystem;
 
     //default
     public Scene() {
@@ -27,10 +28,10 @@ public class Scene {
         this.backgroundColor = "#FFFFFF";
         this.width = 3000;
         this.height = 1000;
-        this.transformSystem = new org.motor2d.ecs.TransformSystem();
+        this.transformSystem = new TransformSystem();
     }
 
-    public org.motor2d.ecs.TransformSystem getTransformSystem() {
+    public TransformSystem getTransformSystem() {
         return transformSystem;
     }
 
@@ -44,7 +45,7 @@ public class Scene {
         this.backgroundColor = backgroundColor;
         this.width = width;
         this.height = height;
-        this.transformSystem = new org.motor2d.ecs.TransformSystem();
+        this.transformSystem = new TransformSystem();
     }
 
     public String getName() {
@@ -131,5 +132,15 @@ public class Scene {
     }
     public void removeAudio(Audio audio) {
         this.backgroundMusic.remove(audio);
+    }
+
+    public void dispose() {
+        for (Entity entity : entities) {
+            entity.dispose();
+        }
+        entities.clear();
+        uiElements.clear();
+        tilemap = null;
+        backgroundMusic.clear();
     }
 }

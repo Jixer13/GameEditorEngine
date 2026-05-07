@@ -23,6 +23,8 @@ public class Toolbar extends JPanel {
     private boolean btnCerrarHover    = false;
     private boolean btnMaximizarHover = false;
     private boolean btnMinimizarHover = false;
+    private boolean btnPlayHover      = false;
+    private boolean btnStopHover      = false;
 
     // ==================== COMPONENTES SWING ====================
     private JMenuBar menuBar;
@@ -34,11 +36,25 @@ public class Toolbar extends JPanel {
     // ==================== CONSTRUCTOR ====================
     public Toolbar(Editor editor) {
         this.editor = editor;
-        setOpaque(true); // Hacer el toolbar opaco para que pinte su fondo
-        setBackground(Color.MENUBAR_BACKGROUND); // Asignar color de fondo consistente
-        setPreferredSize(new Dimension(0, MENUBAR_ALTO)); // Asegurar altura para BorderLayout
+        setOpaque(true); 
+        setBackground(Color.MENUBAR_BACKGROUND); 
+        setPreferredSize(new Dimension(0, MENUBAR_ALTO)); 
         setLayout(null);
         crearMenuArchivo();
+        
+        // Agregar listener para clics en los botones de Play/Stop
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Point p = e.getPoint();
+                if (btnPlayBounds().contains(p)) {
+                    editor.getController().togglePlay();
+                } else if (btnStopBounds().contains(p)) {
+                    editor.getController().stopPlay();
+                }
+                repaint();
+            }
+        });
     }
 
     private void crearMenuArchivo() {
@@ -59,6 +75,7 @@ public class Toolbar extends JPanel {
                 if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
                     editor.getController().createProject(nombre.trim(), chooser.getSelectedFile().getAbsolutePath());
                     editor.refrescarHierarchy();
+                    editor.actualizarTitulo();
                 }
             }
         });
@@ -69,6 +86,7 @@ public class Toolbar extends JPanel {
             if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
                 editor.getController().openProject(chooser.getSelectedFile().getAbsolutePath());
                 editor.refrescarHierarchy();
+                editor.actualizarTitulo();
             }
         });
 
@@ -130,26 +148,44 @@ public class Toolbar extends JPanel {
         return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
     }
 
+    public Rectangle btnPlayBounds() {
+        int x = getWidth() / 2 - BTN_ANCHO;
+        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
+        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
+    }
+
+    public Rectangle btnStopBounds() {
+        int x = getWidth() / 2;
+        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
+        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
+    }
+
     // ==================== ACTUALIZAR HOVER ====================
     public void actualizarHover(Point p) {
         boolean dentroCerrar = btnCerrarBounds().contains(p);
         boolean dentroMax    = btnMaxBounds().contains(p);
         boolean dentroMin    = btnMinBounds().contains(p);
+        boolean dentroPlay   = btnPlayBounds().contains(p);
+        boolean dentroStop   = btnStopBounds().contains(p);
 
         if (dentroCerrar != btnCerrarHover ||
             dentroMax    != btnMaximizarHover ||
-            dentroMin    != btnMinimizarHover) {
+            dentroMin    != btnMinimizarHover ||
+            dentroPlay   != btnPlayHover ||
+            dentroStop   != btnStopHover) {
             btnCerrarHover    = dentroCerrar;
             btnMaximizarHover = dentroMax;
             btnMinimizarHover = dentroMin;
-            repaint(); // Repintar solo el toolbar para mayor eficiencia
+            btnPlayHover      = dentroPlay;
+            btnStopHover      = dentroStop;
+            repaint();
         }
     }
 
     // ==================== PINTADO ====================
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); // Pinta el fondo MENUBAR_BACKGROUND
+        super.paintComponent(g); 
         pintarBotones((Graphics2D) g, editor.isMaximizado());
     }
 
@@ -157,6 +193,8 @@ public class Toolbar extends JPanel {
         pintarBotonMinimizar(g2);
         pintarBotonMaximizar(g2, maximizado);
         pintarBotonCerrar(g2);
+        pintarBotonPlay(g2);
+        pintarBotonStop(g2);
     }
 
     private void pintarBotonMinimizar(Graphics2D g2) {
@@ -184,6 +222,28 @@ public class Toolbar extends JPanel {
             g2.fillRect(r.x, r.y, r.width, r.height);
         }
         pintarTextoBoton(g2, r, "✕");
+    }
+
+    private void pintarBotonPlay(Graphics2D g2) {
+        Rectangle r = btnPlayBounds();
+        boolean isPlaying = editor.getController().isPlaying();
+        
+        if (btnPlayHover) {
+            g2.setColor(Color.BTN_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        
+        g2.setColor(isPlaying ? java.awt.Color.GREEN : Color.TEXT_PRIMARY);
+        pintarTextoBoton(g2, r, "▶");
+    }
+
+    private void pintarBotonStop(Graphics2D g2) {
+        Rectangle r = btnStopBounds();
+        if (btnStopHover) {
+            g2.setColor(Color.BTN_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        pintarTextoBoton(g2, r, "⏹");
     }
 
     private void pintarTextoBoton(Graphics2D g2, Rectangle r, String txt) {

@@ -81,37 +81,40 @@ public class GameLoop implements Runnable {
                     scene.getTransformSystem().updatePrevious();
                 }
                 
-                // 1. Lógica de Usuario (Behaviors)
-                if (scene != null) {
-                    for (org.motor2d.model.Entity entity : scene.getEntities()) {
-                        if (!entity.isActive()) continue;
-                        
-                        // Procesar Scripts/Comportamientos
-                        for (org.motor2d.model.components.Component comp : entity.getComponents()) {
-                            if (comp instanceof org.motor2d.model.components.Behavior behavior && comp.isEnabled()) {
-                                if (!behavior.isStarted()) {
-                                    behavior.start();
-                                    behavior.setStarted(true);
-                                }
-                                behavior.update();
-                            }
+                // --- ACTUALIZACIÓN LÓGICA (SOLO SI ESTÁ EN MODO PLAY) ---
+                if (Engine.isPlaying()) {
+                    // 1. Lógica de Usuario (Behaviors)
+                    if (scene != null) {
+                        for (org.motor2d.model.Entity entity : scene.getEntities()) {
+                            if (!entity.isActive()) continue;
                             
-                            // 2. Actualizar Animaciones
-                            if (comp instanceof org.motor2d.model.components.Animation animation && comp.isEnabled()) {
-                                animation.update(fixedDelta);
+                            // Procesar Scripts/Comportamientos
+                            for (org.motor2d.model.components.Component comp : entity.getComponents()) {
+                                if (comp instanceof org.motor2d.model.components.Behavior behavior && comp.isEnabled()) {
+                                    if (!behavior.isStarted()) {
+                                        behavior.start();
+                                        behavior.setStarted(true);
+                                    }
+                                    behavior.update();
+                                }
+                                
+                                // 2. Actualizar Animaciones
+                                if (comp instanceof org.motor2d.model.components.Animation animation && comp.isEnabled()) {
+                                    animation.update(fixedDelta);
+                                }
                             }
                         }
                     }
-                }
-                
-                physics.update(scene);
-                
-                // 3. Actualizar Cámara
-                if (renderer != null && renderer.getCamara() != null) {
-                    renderer.getCamara().update(fixedDelta);
-                    // Opcional: Clampear a los límites de la escena
-                    if (scene != null) {
-                        renderer.getCamara().clampToBounds(scene.getWidth(), scene.getHeight());
+                    
+                    physics.update(scene);
+                    
+                    // 3. Actualizar Cámara
+                    if (renderer != null && renderer.getCamara() != null) {
+                        renderer.getCamara().update(fixedDelta);
+                        // Opcional: Clampear a los límites de la escena
+                        if (scene != null) {
+                            renderer.getCamara().clampToBounds(scene.getWidth(), scene.getHeight());
+                        }
                     }
                 }
                 

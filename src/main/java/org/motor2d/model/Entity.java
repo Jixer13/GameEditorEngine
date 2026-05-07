@@ -77,5 +77,7 @@ public class Entity {
         return getComponent(type) != null;
     }
 
-
+    public void dispose() {
+        components.clear();
+    }
 }

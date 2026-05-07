@@ -19,6 +19,7 @@ public class Engine {
     private static org.motor2d.manager.AudioManager audioManager;
     private static org.motor2d.manager.PrefabManager prefabManager;
     private static Scene currentScene;
+    private static boolean playing = false;
 
     // ==================== MÉTODOS DE INICIALIZACIÓN ====================
 
@@ -66,6 +67,14 @@ public class Engine {
     }
 
     // ==================== CONTROL DEL CICLO DE VIDA ====================
+
+    public static void setPlaying(boolean p) {
+        playing = p;
+    }
+
+    public static boolean isPlaying() {
+        return playing;
+    }
 
     public static void start() {
         if (gameLoop != null) {

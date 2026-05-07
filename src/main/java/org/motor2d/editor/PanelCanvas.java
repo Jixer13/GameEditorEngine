@@ -1,6 +1,7 @@
 package org.motor2d.editor;
 
 import org.motor2d.core.Engine;
+import org.motor2d.graphics.Camara;
 import org.motor2d.utilities.Color;
 import javax.swing.*;
 import java.awt.*;
@@ -36,7 +37,13 @@ public class PanelCanvas extends JPanel {
     // Variables auxiliares para el arrastre (pan)
     private int dragStartX, dragStartY;
     private double offsetXAlIniciar, offsetYAlIniciar;
-    private boolean arrastrando = false;
+    private boolean arrastrandoCamara = false;
+
+    // Variables para arrastre de entidades
+    private EditorController controller;
+    private org.motor2d.model.Entity entidadSiendoArrastrada = null;
+    private float lastMouseWorldX, lastMouseWorldY;
+    private boolean arrastrandoEntidad = false;
 
     // ==================== CONSTRUCTOR ====================
     public PanelCanvas() {
@@ -47,8 +54,11 @@ public class PanelCanvas extends JPanel {
         registrarEventos();
     }
 
-    // ==================== API DE PREVISUALIZACIÓN ====================
+    public void init(EditorController controller) {
+        this.controller = controller;
+    }
 
+    // ==================== API DE PREVISUALIZACIÓN ====================
     /**
      * Carga y muestra una imagen en el canvas (modo visor).
      */
@@ -88,6 +98,8 @@ public class PanelCanvas extends JPanel {
             offsetX = mouseX - ratio * (mouseX - offsetX);
             offsetY = mouseY - ratio * (mouseY - offsetY);
             zoom    = nuevoZoom;
+            
+            actualizarCamaraMotor();
             repaint();
         });
 
@@ -96,18 +108,41 @@ public class PanelCanvas extends JPanel {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (imagen == null && controller != null) {
+                        float worldX = controller.screenToWorldX(e.getX());
+                        float worldY = controller.screenToWorldY(e.getY());
+                        
+                        org.motor2d.model.Entity picked = controller.pickEntity(worldX, worldY);
+                        if (picked != null) {
+                            controller.setSelectedEntity(picked);
+                            entidadSiendoArrastrada = picked;
+                            lastMouseWorldX = worldX;
+                            lastMouseWorldY = worldY;
+                            arrastrandoEntidad = true;
+                            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                        } else {
+                            // Si hacemos clic en el vacío, deseleccionamos
+                            controller.setSelectedEntity(null);
+                        }
+                    }
+                } else if (SwingUtilities.isRightMouseButton(e) || SwingUtilities.isMiddleMouseButton(e)) {
                     dragStartX         = e.getX();
                     dragStartY         = e.getY();
                     offsetXAlIniciar   = offsetX;
                     offsetYAlIniciar   = offsetY;
-                    arrastrando        = true;
+                    arrastrandoCamara  = true;
                     setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                arrastrando = false;
+                if (arrastrandoEntidad) {
+                    if (controller != null) controller.saveProject(); // Guardar tras mover
+                }
+                arrastrandoCamara  = false;
+                arrastrandoEntidad = false;
+                entidadSiendoArrastrada = null;
                 setCursor(Cursor.getDefaultCursor());
             }
 
@@ -116,22 +151,52 @@ public class PanelCanvas extends JPanel {
                 // Doble clic para restablecer la vista
                 if (e.getClickCount() == 2) {
                     resetVista();
+                    actualizarCamaraMotor();
                     repaint();
                 }
             }
         });
 
-        // Movimiento de cámara (pan)
+        // Movimiento (pan o drag entidad)
         addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (arrastrando) {
+                if (arrastrandoCamara) {
                     offsetX = offsetXAlIniciar + (e.getX() - dragStartX);
                     offsetY = offsetYAlIniciar + (e.getY() - dragStartY);
+                    actualizarCamaraMotor();
+                    repaint();
+                } else if (arrastrandoEntidad && entidadSiendoArrastrada != null && controller != null) {
+                    float worldX = controller.screenToWorldX(e.getX());
+                    float worldY = controller.screenToWorldY(e.getY());
+                    
+                    float dx = worldX - lastMouseWorldX;
+                    float dy = worldY - lastMouseWorldY;
+                    
+                    org.motor2d.model.components.Transform t = entidadSiendoArrastrada.getComponent(org.motor2d.model.components.Transform.class);
+                    if (t != null) {
+                        t.setX(t.getX() + dx);
+                        t.setY(t.getY() + dy);
+                    }
+                    
+                    lastMouseWorldX = worldX;
+                    lastMouseWorldY = worldY;
                     repaint();
                 }
             }
         });
+    }
+
+    private void actualizarCamaraMotor() {
+        if (controller == null) return;
+        Camara cam = Engine.getCamara();
+        if (cam != null) {
+            cam.setZoom((float) zoom);
+            cam.getPosition().x = (float) (-offsetX / zoom);
+            cam.getPosition().y = (float) (-offsetY / zoom);
+            cam.setViewWidth(getWidth());
+            cam.setViewHeight(getHeight());
+        }
     }
 
     // ==================== LÓGICA DE VISTA ====================
@@ -148,6 +213,7 @@ public class PanelCanvas extends JPanel {
             zoom = 1.0;
             offsetX = 0;
             offsetY = 0;
+            actualizarCamaraMotor();
         }
         repaint();
     }
@@ -168,20 +234,50 @@ public class PanelCanvas extends JPanel {
         g2.setColor(Color.CANVAS_COLOR);
         g2.fillRect(0, 0, getWidth(), getHeight());
 
-        // Aplicamos la transformación de cámara
-        g2.translate(offsetX, offsetY);
-        g2.scale(zoom, zoom);
-
         if (imagen != null) {
-            // MODO VISOR: Dibujamos la imagen cargada
+            // MODO VISOR: Dibujamos la imagen cargada con transformación local
+            g2.translate(offsetX, offsetY);
+            g2.scale(zoom, zoom);
             pintarTablero(g2);
             g2.drawImage(imagen, 0, 0, null);
         } else {
             // MODO MOTOR: Delegamos en el Engine
+            // NO aplicamos translate/scale aquí porque el Renderer ya usa la cámara
+            actualizarCamaraMotor(); // Asegurar sincronización
             Engine.render(g2);
+            
+            // Dibujar feedback de selección si hay una entidad seleccionada
+            dibujarSeleccion(g2);
         }
 
         g2.dispose();
+    }
+
+    private void dibujarSeleccion(Graphics2D g2) {
+        if (controller == null) return;
+        org.motor2d.model.Entity selected = controller.getSelectedEntity();
+        if (selected == null || !selected.isActive()) return;
+        
+        org.motor2d.model.components.Transform t = selected.getComponent(org.motor2d.model.components.Transform.class);
+        org.motor2d.model.components.SpriteRenderer s = selected.getComponent(org.motor2d.model.components.SpriteRenderer.class);
+        
+        if (t != null && s != null) {
+            Camara cam = Engine.getCamara();
+            float x = cam.worldToScreenX(t.getX());
+            float y = cam.worldToScreenY(t.getY());
+            float w = s.getFrameWidth() * t.getScaleX() * cam.getZoom();
+            float h = s.getFrameHeight() * t.getScaleY() * cam.getZoom();
+            
+            g2.setColor(java.awt.Color.WHITE);
+            g2.setStroke(new BasicStroke(1.0f));
+            g2.drawRect((int)x - 2, (int)y - 2, (int)w + 4, (int)h + 4);
+            
+            // Pequeños manejadores en las esquinas
+            g2.fillRect((int)x - 4, (int)y - 4, 4, 4);
+            g2.fillRect((int)(x + w), (int)y - 4, 4, 4);
+            g2.fillRect((int)x - 4, (int)(y + h), 4, 4);
+            g2.fillRect((int)(x + w), (int)(y + h), 4, 4);
+        }
     }
 
     /** Tablero de transparencia para el modo visor. */

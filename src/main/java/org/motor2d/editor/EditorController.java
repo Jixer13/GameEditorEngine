@@ -30,7 +30,9 @@ public class EditorController {
     private final ResourceManager resourceManager;
 
     private PanelCanvas canvas;
+    private Editor editor;
     private Clip audioClip;
+    private Entity selectedEntity;
 
     public EditorController() {
         this.projectManager  = new ProjectManager();
@@ -40,11 +42,59 @@ public class EditorController {
         this.resourceManager = new ResourceManager(projectManager);
     }
 
+    public Entity getSelectedEntity() {
+        return selectedEntity;
+    }
+
+    public void setSelectedEntity(Entity entity) {
+        this.selectedEntity = entity;
+        if (editor != null) {
+            editor.seleccionarEntidadEnUI(entity);
+        }
+    }
+
+    /**
+     * Busca una entidad en la posición del mundo indicada.
+     * Útil para seleccionar entidades haciendo clic en el canvas.
+     */
+    public Entity pickEntity(float worldX, float worldY) {
+        if (!isSceneOpen()) return null;
+        try {
+            List<Entity> entities = getAllEntities();
+            // Recorremos de la más reciente a la más antigua (orden de renderizado inverso)
+            for (int i = entities.size() - 1; i >= 0; i--) {
+                Entity e = entities.get(i);
+                if (!e.isActive()) continue;
+
+                org.motor2d.model.components.Transform t = e.getComponent(org.motor2d.model.components.Transform.class);
+                org.motor2d.model.components.SpriteRenderer s = e.getComponent(org.motor2d.model.components.SpriteRenderer.class);
+
+                if (t != null && s != null) {
+                    float x = t.getX();
+                    float y = t.getY();
+                    float w = s.getFrameWidth() * t.getScaleX();
+                    float h = s.getFrameHeight() * t.getScaleY();
+
+                    if (worldX >= x && worldX <= x + w && worldY >= y && worldY <= y + h) {
+                        return e;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignorar errores en el picking
+        }
+        return null;
+    }
+
     /**
      * Vincula el canvas del editor para que el motor pueda dibujar en él.
      */
     public void setCanvas(PanelCanvas canvas) {
         this.canvas = canvas;
+    }
+
+    public void setEditor(Editor editor) {
+        this.editor = editor;
     }
 
     // ==================== GESTIÓN DE PROYECTO ====================
@@ -54,6 +104,11 @@ public class EditorController {
             projectManager.createProject(name, path);
             sceneManager.loadScene("main");
             inicializarMotor();
+            if (editor != null) {
+                editor.actualizarTitulo();
+                editor.actualizarStatusBar();
+                editor.mostrarMensajeEstado("Proyecto creado: " + name);
+            }
             return true;
         } catch (Exception e) {
             mostrarError("Error al crear el proyecto", e.getMessage());
@@ -70,6 +125,11 @@ public class EditorController {
                     .replace(".json", "");
             sceneManager.loadScene(initialScene);
             inicializarMotor();
+            if (editor != null) {
+                editor.actualizarTitulo();
+                editor.actualizarStatusBar();
+                editor.mostrarMensajeEstado("Proyecto abierto correctamente");
+            }
             return true;
         } catch (Exception e) {
             mostrarError("Error al abrir el proyecto", e.getMessage());
@@ -84,6 +144,10 @@ public class EditorController {
             sceneManager.closeScene();
             projectManager.closeProject();
             Sprite.clearCache();
+            if (editor != null) {
+                editor.actualizarTitulo();
+                editor.actualizarStatusBar();
+            }
             return true;
         } catch (Exception e) {
             mostrarError("Error al cerrar el proyecto", e.getMessage());
@@ -121,6 +185,7 @@ public class EditorController {
         try {
             projectManager.saveProject();
             sceneManager.saveScene();
+            if (editor != null) editor.mostrarMensajeEstado("Proyecto guardado");
             return true;
         } catch (Exception e) {
             mostrarError("Error al guardar", e.getMessage());
@@ -223,8 +288,8 @@ public class EditorController {
     public List<String> listSprites() {
         try {
             String projectPath = getProjectPath();
-            if (projectPath == null) return List.of();
-            File assetsDir = new File(projectPath, "Assets");
+            if (projectPath == null || projectPath.isEmpty()) return List.of();
+            File assetsDir = new File(projectPath, "assets");
             if (!assetsDir.exists()) return List.of();
             java.util.List<String> result = new java.util.ArrayList<>();
             buscarImagenes(assetsDir, assetsDir, result);
@@ -248,5 +313,47 @@ public class EditorController {
 
     private void mostrarError(String titulo, String mensaje) {
         JOptionPane.showMessageDialog(null, mensaje, titulo, JOptionPane.ERROR_MESSAGE);
+    }
+
+    // ==================== PLAY MODE ====================
+
+    public boolean isPlaying() {
+        return Engine.isPlaying();
+    }
+
+    public void togglePlay() {
+        if (!isSceneOpen()) return;
+        
+        if (Engine.isPlaying()) {
+            stopPlay();
+        } else {
+            try {
+                // Guardar escena antes de jugar para poder restaurar luego
+                sceneManager.saveScene();
+                Engine.setPlaying(true);
+                if (editor != null) editor.mostrarMensajeEstado("Modo JUEGO activado");
+            } catch (Exception e) {
+                mostrarError("Error al iniciar modo juego", e.getMessage());
+            }
+        }
+    }
+
+    public void stopPlay() {
+        if (!isSceneOpen()) return;
+        
+        Engine.setPlaying(false);
+        try {
+            // Recargar la escena para resetear posiciones y estados
+            String sceneName = sceneManager.getCurrentScene().getName();
+            sceneManager.loadScene(sceneName);
+            inicializarMotor(); // Re-inicializar para vincular la nueva instancia de la escena
+            
+            if (editor != null) {
+                editor.refrescarHierarchy();
+                editor.mostrarMensajeEstado("Modo EDITOR activado (Escena reseteada)");
+            }
+        } catch (Exception e) {
+            mostrarError("Error al detener modo juego", e.getMessage());
+        }
     }
 }

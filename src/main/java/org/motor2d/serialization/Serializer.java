@@ -19,6 +19,7 @@ public class Serializer {
     private static final String PROJECT_FILE    = "project.json";
     private static final String SCENES_FOLDER   = "scenes";
     private static final String ASSETS_FOLDER   = "assets";
+    private static final String PREFABS_FOLDER  = "assets/prefabs";
     private static final String SPRITES_FOLDER  = "assets/sprites";
     private static final String AUDIO_FOLDER    = "assets/audio";
     private static final String FONTS_FOLDER    = "assets/fonts";
@@ -55,10 +56,10 @@ public class Serializer {
 
     // CREAR PROYECTO NUEVO
     public void createProjectStructure(String projectPath) throws IOException {
-        // Crear todas las carpetas necesarias
         createFolder(projectPath, "");                // raíz
         createFolder(projectPath, SCENES_FOLDER);     // scenes/
         createFolder(projectPath, ASSETS_FOLDER);     // assets/
+        createFolder(projectPath, PREFABS_FOLDER);    // assets/prefabs/
         createFolder(projectPath, SPRITES_FOLDER);    // assets/sprites/
         createFolder(projectPath, AUDIO_FOLDER);      // assets/audio/
         createFolder(projectPath, FONTS_FOLDER);      // assets/fonts/
@@ -82,6 +83,13 @@ public class Serializer {
         Project project = mapper.readValue(file, Project.class);
         project.setPath(projectPath); // Aseguramos que el objeto conoce su ubicación en disco
         return project;
+    }
+
+    // PREFABS
+    public void savePrefab(org.motor2d.model.Entity entity, String projectPath) throws IOException {
+        File file = new File(projectPath + File.separator + PREFABS_FOLDER, entity.getName() + ".json");
+        ensureDirectoryExists(file.getParentFile());
+        mapper.writeValue(file, entity);
     }
 
     // SCENES
