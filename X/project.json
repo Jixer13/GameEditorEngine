@@ -1,0 +1,13 @@
+{
+  "name" : "pruebaGemini 2",
+  "version" : "1.0",
+  "initialScene" : "scenes/main.json",
+  "configuration" : {
+    "title" : "New Project",
+    "windowWidth" : 1280,
+    "windowHeight" : 720,
+    "fullScreen" : false,
+    "fps" : 60
+  },
+  "tilesets" : [ ]
+}

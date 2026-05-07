@@ -265,4 +265,7 @@ public class Editor extends JFrame {
         System.setProperty("sun.java2d.uiScale", "1.0");
         SwingUtilities.invokeLater(Editor::new);
     }
+
+    public void confirmarSalida() {
+    }
 }
