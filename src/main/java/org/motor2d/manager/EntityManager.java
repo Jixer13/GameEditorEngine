@@ -3,7 +3,10 @@ package org.motor2d.manager;
 import org.motor2d.model.Entity;
 import org.motor2d.model.Scene;
 import org.motor2d.model.components.*;
+import org.motor2d.model.ui.UIButton;
 import org.motor2d.model.ui.UIElement;
+import org.motor2d.model.ui.UIImage;
+import org.motor2d.model.ui.UILabel;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +58,45 @@ public class EntityManager {
         sceneManager.saveScene();
 
         return entity;
+    }
+
+    // ==================== UI ELEMENTS ====================
+    
+    public UILabel createUILabel(String name, String text) throws IOException {
+        checkSceneOpen();
+        UILabel label = new UILabel();
+        label.setName(name);
+        label.setText(text);
+        label.setX(100);
+        label.setY(100);
+        addUIElement(label);
+        return label;
+    }
+
+    public UIButton createUIButton(String name, String text) throws IOException {
+        checkSceneOpen();
+        UIButton button = new UIButton();
+        button.setName(name);
+        button.setText(text);
+        button.setX(100);
+        button.setY(150);
+        button.setWidth(120);
+        button.setHeight(40);
+        addUIElement(button);
+        return button;
+    }
+
+    public UIImage createUIImage(String name, String spritePath) throws IOException {
+        checkSceneOpen();
+        UIImage image = new UIImage();
+        image.setName(name);
+        image.setImagePath(spritePath);
+        image.setX(100);
+        image.setY(200);
+        image.setWidth(100);
+        image.setHeight(100);
+        addUIElement(image);
+        return image;
     }
 
     // Eliminar

@@ -1,5 +1,7 @@
 package org.motor2d.graphics;
 
+import org.motor2d.model.Entity;
+import org.motor2d.model.components.Transform;
 import org.motor2d.utilities.Vector2;
 
 public class Camara {
@@ -10,7 +12,7 @@ public class Camara {
     private int viewHeight;
     
     // Seguimiento suave
-    private org.motor2d.model.Entity target;
+    private Entity target;
     private float lerpSpeed = 5.0f; // Velocidad de seguimiento (0 = no se mueve, mayor = más rápido)
 
     public Camara(int viewWidth, int viewHeight) {
@@ -26,7 +28,7 @@ public class Camara {
     public void update(float deltaTime) {
         if (target == null) return;
 
-        org.motor2d.model.components.Transform t = target.getComponent(org.motor2d.model.components.Transform.class);
+        Transform t = target.getComponent(Transform.class);
         if (t == null) return;
 
         // Calculamos la posición deseada (centro del objetivo)
@@ -38,7 +40,7 @@ public class Camara {
         position.y += (desiredY - position.y) * lerpSpeed * deltaTime;
     }
 
-    public void setTarget(org.motor2d.model.Entity target) {
+    public void setTarget(Entity target) {
         this.target = target;
     }
 

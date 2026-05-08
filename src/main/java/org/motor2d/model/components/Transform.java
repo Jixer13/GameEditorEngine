@@ -41,26 +41,27 @@ public class Transform extends Component {
         if (system != null && transformId != -1) {
             system.setPosition(transformId, x, y);
             system.setRotation(transformId, rotation);
+            system.setScale(transformId, scaleX, scaleY);
         }
     }
 
     // Getters y Setters actualizados para usar el sistema si existe
     public float getX() { 
-        return (system != null) ? system.getX(transformId) : x; 
+        return (system != null && transformId != -1) ? system.getX(transformId) : x; 
     }
     
     public void setX(float x) { 
         this.x = x; 
-        if (system != null) system.setPosition(transformId, x, getY());
+        if (system != null && transformId != -1) system.setPosition(transformId, x, getY());
     }
 
     public float getY() { 
-        return (system != null) ? system.getY(transformId) : y; 
+        return (system != null && transformId != -1) ? system.getY(transformId) : y; 
     }
     
     public void setY(float y) { 
         this.y = y; 
-        if (system != null) system.setPosition(transformId, getX(), y);
+        if (system != null && transformId != -1) system.setPosition(transformId, getX(), y);
     }
 
     public void updatePrevious() {
@@ -73,28 +74,34 @@ public class Transform extends Component {
     }
 
     public float getInterpolatedX(float alpha) {
-        return (system != null) ? system.getInterpolatedX(transformId, alpha) : (prevX + (x - prevX) * alpha);
+        return (system != null && transformId != -1) ? system.getInterpolatedX(transformId, alpha) : (prevX + (x - prevX) * alpha);
     }
 
     public float getInterpolatedY(float alpha) {
-        return (system != null) ? system.getInterpolatedY(transformId, alpha) : (prevY + (y - prevY) * alpha);
+        return (system != null && transformId != -1) ? system.getInterpolatedY(transformId, alpha) : (prevY + (y - prevY) * alpha);
     }
 
     public float getScaleX() { 
-        return (system != null) ? system.getScaleX(transformId) : scaleX; 
+        return (system != null && transformId != -1) ? system.getScaleX(transformId) : scaleX; 
     }
-    public void setScaleX(float scaleX) { this.scaleX = scaleX; }
+    public void setScaleX(float scaleX) { 
+        this.scaleX = scaleX; 
+        if (system != null && transformId != -1) system.setScale(transformId, scaleX, getScaleY());
+    }
 
     public float getScaleY() { 
-        return (system != null) ? system.getScaleY(transformId) : scaleY; 
+        return (system != null && transformId != -1) ? system.getScaleY(transformId) : scaleY; 
     }
-    public void setScaleY(float scaleY) { this.scaleY = scaleY; }
+    public void setScaleY(float scaleY) { 
+        this.scaleY = scaleY; 
+        if (system != null && transformId != -1) system.setScale(transformId, getScaleX(), scaleY);
+    }
 
     public float getRotation() { 
-        return (system != null) ? system.getRotation(transformId) : rotation; 
+        return (system != null && transformId != -1) ? system.getRotation(transformId) : rotation; 
     }
     public void setRotation(float rotation) { 
         this.rotation = rotation; 
-        if (system != null) system.setRotation(transformId, rotation);
+        if (system != null && transformId != -1) system.setRotation(transformId, rotation);
     }
 }

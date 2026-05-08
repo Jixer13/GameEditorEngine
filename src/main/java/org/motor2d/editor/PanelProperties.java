@@ -1,22 +1,24 @@
 package org.motor2d.editor;
 
+import org.motor2d.editor.helpers.EditorController;
+import org.motor2d.editor.helpers.UIFactory;
 import org.motor2d.model.Entity;
 import org.motor2d.model.components.Animation;
 import org.motor2d.model.components.Collider;
+import org.motor2d.model.components.Component;
 import org.motor2d.model.components.SpriteRenderer;
 import org.motor2d.model.components.Transform;
+import org.motor2d.model.ui.UIButton;
+import org.motor2d.model.ui.UIElement;
+import org.motor2d.model.ui.UIImage;
+import org.motor2d.model.ui.UILabel;
 import org.motor2d.utilities.Color;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 
 /**
  * Panel derecho del editor — Propiedades del elemento seleccionado.
@@ -31,6 +33,7 @@ public class PanelProperties extends JPanel {
     private EditorController controller;
     private Entity           entidadActual;
     private File             assetActual;
+    private UIElement uiElementActual;
 
     // ==================== CONSTRUCTOR ====================
     public PanelProperties() {
@@ -50,12 +53,22 @@ public class PanelProperties extends JPanel {
     public void mostrarAsset(File file) {
         this.entidadActual = null;
         this.assetActual   = file;
+        this.uiElementActual = null;
+        reconstruirCuerpo();
+    }
+
+    public void mostrarUIElement(UIElement ui, EditorController ctrl) {
+        this.entidadActual = null;
+        this.assetActual   = null;
+        this.uiElementActual = ui;
+        this.controller    = ctrl;
         reconstruirCuerpo();
     }
 
     public void limpiar() {
         this.entidadActual = null;
         this.assetActual   = null;
+        this.uiElementActual = null;
         reconstruirCuerpo();
     }
 
@@ -93,13 +106,13 @@ public class PanelProperties extends JPanel {
     private void reconstruirCuerpo() {
         cuerpo.removeAll();
 
-        if (entidadActual == null && assetActual == null) {
+        if (entidadActual == null && assetActual == null && uiElementActual == null) {
             mostrarMensajeVacio();
         } else if (entidadActual != null) {
             agregarSeccionEntidad();
             agregarSeparador();
 
-            for (org.motor2d.model.components.Component comp : entidadActual.getComponents()) {
+            for (Component comp : entidadActual.getComponents()) {
                 if      (comp instanceof Transform t)       agregarSeccionTransform(t);
                 else if (comp instanceof SpriteRenderer s)  agregarSeccionSprite(s);
                 else if (comp instanceof Collider c)        agregarSeccionCollider(c);
@@ -107,12 +120,80 @@ public class PanelProperties extends JPanel {
             }
 
             cuerpo.add(Box.createVerticalGlue());
+        } else if (uiElementActual != null) {
+            agregarSeccionUIBase(uiElementActual);
+            
+            if (uiElementActual instanceof UILabel label) {
+                agregarSeccionUILabel(label);
+            } else if (uiElementActual instanceof UIButton button) {
+                agregarSeccionUIButton(button);
+            } else if (uiElementActual instanceof UIImage image) {
+                agregarSeccionUIImage(image);
+            }
+            
+            cuerpo.add(Box.createVerticalGlue());
         } else if (assetActual != null) {
             agregarSeccionInfoArchivo(assetActual);
         }
 
         cuerpo.revalidate();
         cuerpo.repaint();
+    }
+
+    private void agregarSeccionUIBase(UIElement ui) {
+        JPanel sec = crearSeccion("UI Element");
+        
+        JTextField campoNombre = crearTextField(ui.getName());
+        campoNombre.addActionListener(e -> { ui.setName(campoNombre.getText().trim()); guardar(); });
+        sec.add(crearFila("Nombre", campoNombre));
+        
+        sec.add(crearFila("X", crearFloatField(ui.getX(), v -> { ui.setX(v); guardar(); })));
+        sec.add(crearFila("Y", crearFloatField(ui.getY(), v -> { ui.setY(v); guardar(); })));
+        
+        cuerpo.add(sec);
+        agregarSeparador();
+    }
+
+    private void agregarSeccionUILabel(UILabel label) {
+        JPanel sec = crearSeccion("UI Label");
+        
+        JTextField campoTexto = crearTextField(label.getText());
+        campoTexto.addActionListener(e -> { label.setText(campoTexto.getText().trim()); guardar(); });
+        sec.add(crearFila("Texto", campoTexto));
+        
+        sec.add(crearFila("Size", crearIntField(label.getFontSize(), v -> { label.setFontSize(v); guardar(); })));
+        
+        cuerpo.add(sec);
+    }
+
+    private void agregarSeccionUIButton(UIButton button) {
+        JPanel sec = crearSeccion("UI Button");
+        
+        JTextField campoTexto = crearTextField(button.getText());
+        campoTexto.addActionListener(e -> { button.setText(campoTexto.getText().trim()); guardar(); });
+        sec.add(crearFila("Texto", campoTexto));
+        
+        sec.add(crearFila("Width",  crearFloatField(button.getWidth(),  v -> { button.setWidth(v);  guardar(); })));
+        sec.add(crearFila("Height", crearFloatField(button.getHeight(), v -> { button.setHeight(v); guardar(); })));
+        
+        cuerpo.add(sec);
+    }
+
+    private void agregarSeccionUIImage(UIImage image) {
+        JPanel sec = crearSeccion("UI Image");
+        
+        JTextField campoRuta = crearTextField(image.getImagePath());
+        campoRuta.addActionListener(e -> { image.setImagePath(campoRuta.getText().trim()); guardar(); reconstruirCuerpo(); });
+        sec.add(crearFila("Ruta", campoRuta));
+        
+        sec.add(crearFila("Width",  crearFloatField(image.getWidth(),  v -> { image.setWidth(v);  guardar(); })));
+        sec.add(crearFila("Height", crearFloatField(image.getHeight(), v -> { image.setHeight(v); guardar(); })));
+        
+        if (image.getImagePath() != null && !image.getImagePath().isBlank()) {
+            agregarPreviewImagen(sec, image.getImagePath());
+        }
+        
+        cuerpo.add(sec);
     }
 
     private void agregarSeccionInfoArchivo(File file) {
@@ -269,27 +350,9 @@ public class PanelProperties extends JPanel {
                 rutaFinal = rutaFinal.replace("\\", "/");
             }
 
-            campoImg.setText(rutaFinal);
-
-            // Crear SpriteRenderer y asignarlo a la entidad
-            SpriteRenderer sr = new SpriteRenderer();
-            sr.setSpritePath(rutaFinal);
-
-            // Obtener tamaño real de la imagen
-            BufferedImage img;
-            try (InputStream is = Files.newInputStream(archivo.toPath())) {
-                img = ImageIO.read(is);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Error al procesar la imagen", e);
-            }
-
-            if (img != null) {
-                sr.setFrameWidth(img.getWidth());
-                sr.setFrameHeight(img.getHeight());
-            }
-
-            entidadActual.addComponent(sr);
-            guardar();
+            // Usar el controlador para la orquestación (ruta, tamaño, componente, guardado)
+            controller.setEntitySprite(entidadActual, rutaFinal);
+            
             // Recargar el panel para que aparezca la sección SpriteRenderer
             reconstruirCuerpo();
         });
@@ -505,86 +568,32 @@ public class PanelProperties extends JPanel {
         sec.setLayout(new BoxLayout(sec, BoxLayout.Y_AXIS));
         sec.setBackground(Color.BACKGROUND);
         sec.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel lbl = new JLabel("  " + titulo);
-        lbl.setForeground(Color.TEXT_PRIMARY);
-        lbl.setFont(new Font("Arial", Font.BOLD, 11));
-        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-        lbl.setBackground(Color.PANEL_BACKGROUND);
-        lbl.setOpaque(true);
-        lbl.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 0));
-        sec.add(lbl);
+        sec.add(UIFactory.createHeaderLabel(titulo));
         return sec;
     }
 
     private JPanel crearFila(String etiqueta, JComponent control) {
-        JPanel fila = new JPanel(new BorderLayout(4, 0));
-        fila.setBackground(Color.PANEL_ALT_BACKGROUND);
-        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        fila.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
-
-        JLabel lbl = new JLabel(etiqueta);
-        lbl.setForeground(Color.TEXT_SECONDARY);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 11));
-        lbl.setPreferredSize(new Dimension(70, 22));
-        fila.add(lbl, BorderLayout.WEST);
-        fila.add(control, BorderLayout.CENTER);
-        return fila;
+        return UIFactory.createPropertyRow(etiqueta, control);
     }
 
     private JTextField crearTextField(String valor) {
-        JTextField tf = new JTextField(valor);
-        tf.setBackground(Color.PANEL_BACKGROUND);
-        tf.setForeground(Color.TEXT_PRIMARY);
-        tf.setCaretColor(Color.TEXT_PRIMARY);
-        tf.setFont(new Font("Arial", Font.PLAIN, 11));
-        tf.setBorder(BorderFactory.createLineBorder(Color.BORDER_COLOR, 1));
-        return tf;
+        return UIFactory.createTextField(valor);
     }
 
     private JLabel crearLabelValor(String val) {
-        JLabel lbl = new JLabel(val);
-        lbl.setForeground(Color.TEXT_PRIMARY);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 11));
-        return lbl;
+        return UIFactory.createValueLabel(val);
     }
 
     private JTextField crearFloatField(float valor, FloatConsumer onChange) {
-        JTextField tf = crearTextField(String.valueOf(valor));
-        tf.addActionListener(e -> {
-            try { onChange.accept(Float.parseFloat(tf.getText().trim())); }
-            catch (NumberFormatException ignored) {}
-        });
-        tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusLost(java.awt.event.FocusEvent e) {
-                try { onChange.accept(Float.parseFloat(tf.getText().trim())); }
-                catch (NumberFormatException ignored) {}
-            }
-        });
-        return tf;
+        return UIFactory.createFloatField(valor, onChange::accept);
     }
 
     private JTextField crearIntField(int valor, IntConsumer onChange) {
-        JTextField tf = crearTextField(String.valueOf(valor));
-        tf.addActionListener(e -> {
-            try { onChange.accept(Integer.parseInt(tf.getText().trim())); }
-            catch (NumberFormatException ignored) {}
-        });
-        tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusLost(java.awt.event.FocusEvent e) {
-                try { onChange.accept(Integer.parseInt(tf.getText().trim())); }
-                catch (NumberFormatException ignored) {}
-            }
-        });
-        return tf;
+        return UIFactory.createIntField(valor, onChange::accept);
     }
 
     private void agregarSeparador() {
-        JSeparator sep = new JSeparator();
-        sep.setForeground(Color.BORDER_COLOR);
-        sep.setBackground(Color.BACKGROUND);
-        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
-        cuerpo.add(sep);
+        cuerpo.add(UIFactory.createSeparator());
     }
 
     private void guardar() {

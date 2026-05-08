@@ -1,16 +1,15 @@
-package org.motor2d.editor;
+package org.motor2d.editor.helpers;
 
 import org.motor2d.core.Engine;
+import org.motor2d.editor.Editor;
+import org.motor2d.editor.PanelCanvas;
 import org.motor2d.graphics.Camara;
 import org.motor2d.graphics.Sprite;
 import org.motor2d.manager.*;
 import org.motor2d.model.Entity;
-import org.motor2d.model.Scene;
-import org.motor2d.model.Tile;
-import org.motor2d.model.Tilemap;
+import org.motor2d.model.components.SpriteRenderer;
 import org.motor2d.model.components.TilemapLayer;
-import org.motor2d.model.Tileset;
-import org.motor2d.model.components.Component;
+import org.motor2d.model.components.Transform;
 import org.motor2d.model.ui.UIElement;
 
 import javax.sound.sampled.*;
@@ -66,8 +65,8 @@ public class EditorController {
                 Entity e = entities.get(i);
                 if (!e.isActive()) continue;
 
-                org.motor2d.model.components.Transform t = e.getComponent(org.motor2d.model.components.Transform.class);
-                org.motor2d.model.components.SpriteRenderer s = e.getComponent(org.motor2d.model.components.SpriteRenderer.class);
+                Transform t = e.getComponent(Transform.class);
+                SpriteRenderer s = e.getComponent(SpriteRenderer.class);
 
                 if (t != null && s != null) {
                     float x = t.getX();
@@ -244,6 +243,7 @@ public class EditorController {
 
     public ProjectManager getProjectManager() { return projectManager; }
     public SceneManager getSceneManager() { return sceneManager; }
+    public TilesetManager getTilesetManager() { return tilesetManager; }
 
     // ==================== HELPERS PARA PANELES ====================
 
@@ -257,6 +257,36 @@ public class EditorController {
         catch (Exception e) { mostrarError("Error al crear entidad", e.getMessage()); return null; }
     }
 
+    public void setEntitySprite(Entity entity, String relativePath) {
+        if (entity == null || relativePath == null) return;
+        
+        try {
+            SpriteRenderer sr = entity.getComponent(SpriteRenderer.class);
+            if (sr == null) {
+                sr = new SpriteRenderer();
+                entity.addComponent(sr);
+            }
+            
+            sr.setSpritePath(relativePath);
+            
+            // Detectar tamaño
+            File f = new File(getProjectPath(), relativePath);
+            if (f.exists()) {
+                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(f);
+                if (img != null) {
+                    sr.setFrameWidth(img.getWidth());
+                    sr.setFrameHeight(img.getHeight());
+                }
+            }
+            
+            saveProject();
+            if (editor != null) editor.getPanelCanvas().repaint();
+            
+        } catch (Exception e) {
+            mostrarError("Error al asignar sprite", e.getMessage());
+        }
+    }
+
     public boolean removeEntity(Entity entity) {
         try { entityManager.removeEntity(entity); return true; }
         catch (Exception e) { mostrarError("Error al eliminar entidad", e.getMessage()); return false; }
@@ -265,6 +295,33 @@ public class EditorController {
     public Entity duplicateEntity(Entity entity) {
         try { return entityManager.duplicateEntity(entity); }
         catch (Exception e) { mostrarError("Error al duplicar entidad", e.getMessage()); return null; }
+    }
+
+    // ==================== UI ELEMENTS ====================
+
+    public UIElement createUILabel(String name, String text) {
+        try { return entityManager.createUILabel(name, text); }
+        catch (Exception e) { mostrarError("Error al crear Label", e.getMessage()); return null; }
+    }
+
+    public UIElement createUIButton(String name, String text) {
+        try { return entityManager.createUIButton(name, text); }
+        catch (Exception e) { mostrarError("Error al crear Botón", e.getMessage()); return null; }
+    }
+
+    public UIElement createUIImage(String name, String path) {
+        try { return entityManager.createUIImage(name, path); }
+        catch (Exception e) { mostrarError("Error al crear Imagen", e.getMessage()); return null; }
+    }
+
+    public List<UIElement> getAllUIElements() {
+        try { return entityManager.getAllUIElements(); }
+        catch (Exception e) { return List.of(); }
+    }
+
+    public boolean removeUIElement(UIElement element) {
+        try { entityManager.removeUIElement(element); return true; }
+        catch (Exception e) { mostrarError("Error al eliminar UI", e.getMessage()); return false; }
     }
 
     public boolean createScene(String name) {
@@ -287,27 +344,9 @@ public class EditorController {
 
     public List<String> listSprites() {
         try {
-            String projectPath = getProjectPath();
-            if (projectPath == null || projectPath.isEmpty()) return List.of();
-            File assetsDir = new File(projectPath, "assets");
-            if (!assetsDir.exists()) return List.of();
-            java.util.List<String> result = new java.util.ArrayList<>();
-            buscarImagenes(assetsDir, assetsDir, result);
-            return result;
-        } catch (Exception e) { return List.of(); }
-    }
-
-    private void buscarImagenes(File base, File dir, java.util.List<String> result) {
-        File[] files = dir.listFiles();
-        if (files == null) return;
-        for (File f : files) {
-            if (f.isDirectory()) { buscarImagenes(base, f, result); }
-            else {
-                String name = f.getName().toLowerCase();
-                if (name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")) {
-                    result.add(base.toURI().relativize(f.toURI()).getPath());
-                }
-            }
+            return resourceManager.listSprites();
+        } catch (Exception e) {
+            return List.of();
         }
     }
 

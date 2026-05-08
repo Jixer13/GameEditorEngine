@@ -1,5 +1,6 @@
 package org.motor2d.editor;
 
+import org.motor2d.editor.helpers.EditorController;
 import org.motor2d.utilities.Color;
 
 import javax.swing.*;

@@ -57,10 +57,18 @@ public class TransformSystem {
         System.arraycopy(y, 0, prevY, 0, size);
     }
 
-    // Getters y Setters rápidos mediante ID
     public void setPosition(int id, float nx, float ny) {
         x[id] = nx;
         y[id] = ny;
+    }
+
+    public void setRotation(int id, float r) {
+        rotation[id] = r;
+    }
+
+    public void setScale(int id, float sx, float sy) {
+        scaleX[id] = sx;
+        scaleY[id] = sy;
     }
 
     public float getX(int id) { return x[id]; }
@@ -75,8 +83,6 @@ public class TransformSystem {
     }
 
     public float getRotation(int id) { return rotation[id]; }
-    public void setRotation(int id, float r) { rotation[id] = r; }
-
     public float getScaleX(int id) { return scaleX[id]; }
     public float getScaleY(int id) { return scaleY[id]; }
 }

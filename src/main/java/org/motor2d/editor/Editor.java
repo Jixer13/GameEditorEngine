@@ -1,5 +1,6 @@
 package org.motor2d.editor;
 
+import org.motor2d.editor.helpers.EditorController;
 import org.motor2d.model.Entity;
 import org.motor2d.utilities.Color;
 import javax.swing.*;
@@ -113,7 +114,7 @@ public Editor() {
         toolbar = new Toolbar(this);
         statusBar = new StatusBar();
 
-        panelHierarchy.init(controller, panelProperties);
+        panelHierarchy.init(controller, panelProperties, panelCanvas, this);
         panelAssets.init(controller, panelProperties, this);
         panelCanvas.init(controller);
         controller.setCanvas(panelCanvas);
@@ -288,7 +289,7 @@ public Editor() {
 
     private void alternarMaximizar() {
         if (!maximizado) {
-            estadoAnterior = new Rectangle(getX(), getY(), getWidth(), getHeight());
+            estadoAnterior = getBounds();
             Rectangle pantalla = GraphicsEnvironment.getLocalGraphicsEnvironment()
                     .getDefaultScreenDevice().getDefaultConfiguration().getBounds();
             setBounds(pantalla);

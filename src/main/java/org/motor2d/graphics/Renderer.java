@@ -1,5 +1,6 @@
 package org.motor2d.graphics;
 
+import org.motor2d.core.Time;
 import org.motor2d.model.Entity;
 import org.motor2d.model.Scene;
 import org.motor2d.model.Tile;
@@ -50,7 +51,7 @@ public class Renderer {
         }
         
         configurarRenderizado(g2);
-        float alpha = org.motor2d.core.Time.getInterpolation();
+        float alpha = Time.getInterpolation();
 
         // 1. Color de fondo
         renderBackground(g2, scene);

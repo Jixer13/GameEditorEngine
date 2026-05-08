@@ -1,6 +1,10 @@
 package org.motor2d.core;
 
 import org.motor2d.graphics.Renderer;
+import org.motor2d.model.Entity;
+import org.motor2d.model.components.Animation;
+import org.motor2d.model.components.Behavior;
+import org.motor2d.model.components.Component;
 import org.motor2d.physics.PhysicsSystem;
 import org.motor2d.model.Scene;
 import org.motor2d.model.Project;
@@ -85,12 +89,12 @@ public class GameLoop implements Runnable {
                 if (Engine.isPlaying()) {
                     // 1. Lógica de Usuario (Behaviors)
                     if (scene != null) {
-                        for (org.motor2d.model.Entity entity : scene.getEntities()) {
+                        for (Entity entity : scene.getEntities()) {
                             if (!entity.isActive()) continue;
                             
                             // Procesar Scripts/Comportamientos
-                            for (org.motor2d.model.components.Component comp : entity.getComponents()) {
-                                if (comp instanceof org.motor2d.model.components.Behavior behavior && comp.isEnabled()) {
+                            for (Component comp : entity.getComponents()) {
+                                if (comp instanceof Behavior behavior && comp.isEnabled()) {
                                     if (!behavior.isStarted()) {
                                         behavior.start();
                                         behavior.setStarted(true);
@@ -99,7 +103,7 @@ public class GameLoop implements Runnable {
                                 }
                                 
                                 // 2. Actualizar Animaciones
-                                if (comp instanceof org.motor2d.model.components.Animation animation && comp.isEnabled()) {
+                                if (comp instanceof Animation animation && comp.isEnabled()) {
                                     animation.update(fixedDelta);
                                 }
                             }

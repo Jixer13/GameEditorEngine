@@ -19,12 +19,40 @@ public class Tileset {
         this.tiles = new ArrayList<>();
     }
 
-    // Buscar definición de tile por id
+    public Tile getOrCreateTile(int col, int row) {
+        int id = row * getCols() + col;
+        Tile tile = getTileById(id);
+        if (tile == null) {
+            tile = new Tile();
+            tile.setId(id);
+            tile.setName("Tile_" + id);
+            // Asumimos que el spritePath es la misma imagen del tileset
+            // o se manejará mediante offsets en el futuro.
+            tile.setSpritePath(this.imagePath); 
+            addTile(tile);
+        }
+        return tile;
+    }
+
     public Tile getTileById(int id) {
         for (Tile tile : tiles) {
             if (tile.getId() == id) return tile;
         }
         return null;
+    }
+
+    public int getCols() {
+        try {
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(new java.io.File(imagePath));
+            return img.getWidth() / tileWidth;
+        } catch (Exception e) { return 0; }
+    }
+
+    public int getRows() {
+        try {
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(new java.io.File(imagePath));
+            return img.getHeight() / tileHeight;
+        } catch (Exception e) { return 0; }
     }
 
     public void addTile(Tile tile) { this.tiles.add(tile); }

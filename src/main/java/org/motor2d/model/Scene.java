@@ -25,7 +25,7 @@ public class Scene {
         this.uiElements = new ArrayList<>();
         this.tilemap = null; //if is something like a menu it does not have tiles
         this.backgroundMusic = new ArrayList<>();
-        this.backgroundColor = "#FFFFFF";
+        this.backgroundColor = "#383838";
         this.width = 3000;
         this.height = 1000;
         this.transformSystem = new TransformSystem();
