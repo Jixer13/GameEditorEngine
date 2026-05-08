@@ -26,27 +26,37 @@ public class Sprite {
     // Carga una imagen del disco con cache
     public static Sprite load(String projectPath,
                               String relativePath) throws IOException {
-        if (relativePath == null || relativePath.isEmpty()) {
-            throw new IOException("Ruta de sprite vacia");
+
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new IOException("Ruta de sprite vacía");
         }
 
-        String fullPath = projectPath + File.separator + relativePath;
+        File file = new File(relativePath);
+
+        // Si NO existe como absoluta/relativa actual,
+        // probar relativa al proyecto
+        if (!file.exists()) {
+            file = new File(projectPath, relativePath);
+        }
+
+        String fullPath = file.getAbsolutePath();
 
         if (cache.containsKey(fullPath)) {
             return new Sprite(fullPath, cache.get(fullPath));
         }
 
-        File file = new File(fullPath);
         if (!file.exists()) {
-            throw new IOException("No se encontro la imagen: " + fullPath);
+            throw new IOException("No se encontró la imagen: " + fullPath);
         }
 
         BufferedImage image = ImageIO.read(file);
+
         if (image == null) {
             throw new IOException("No se pudo leer la imagen: " + fullPath);
         }
 
         cache.put(fullPath, image);
+
         return new Sprite(fullPath, image);
     }
 

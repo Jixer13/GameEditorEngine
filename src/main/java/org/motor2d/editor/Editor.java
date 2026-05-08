@@ -101,17 +101,17 @@ public Editor() {
 
     // ==================== CONSTRUCCIÓN UI ====================
     private void construirUI() {
-        panelHierarchy  = new PanelHierarchy();
+        panelHierarchy = new PanelHierarchy();
         panelProperties = new PanelProperties();
-        panelCanvas     = new PanelCanvas();
+        panelCanvas = new PanelCanvas();
         
         // Inicializar con la ruta del proyecto si está abierto
         File assetsDir = controller.isProjectOpen() 
                          ? new File(controller.getProjectPath(), "assets") 
                          : carpetaProyectos;
-        panelAssets     = new PanelAssets(rutaProyecto, assetsDir, panelCanvas);
-        toolbar         = new Toolbar(this);
-        statusBar       = new StatusBar();
+        panelAssets = new PanelAssets(rutaProyecto, assetsDir, panelCanvas);
+        toolbar = new Toolbar(this);
+        statusBar = new StatusBar();
 
         panelHierarchy.init(controller, panelProperties);
         panelAssets.init(controller, panelProperties, this);
@@ -237,34 +237,48 @@ public Editor() {
 
     // ==================== EVENTOS VENTANA ====================
     private void registrarEventosVentana() {
-        raizPanel.addMouseListener(new MouseAdapter() {
+        toolbar.addMouseListener(new MouseAdapter() {
+
             @Override
             public void mousePressed(MouseEvent e) {
-                mouseX = e.getX(); mouseY = e.getY();
+                mouseX = e.getX();
+                mouseY = e.getY();
             }
+
             @Override
             public void mouseClicked(MouseEvent e) {
+
                 Point p = e.getPoint();
-                if (toolbar.btnMinBounds().contains(p))    setState(JFrame.ICONIFIED);
-                else if (toolbar.btnMaxBounds().contains(p)) alternarMaximizar();
-                else if (toolbar.btnCerrarBounds().contains(p)) confirmarCerrar();
+
+                if (toolbar.btnMinBounds().contains(p)) {
+                    setState(JFrame.ICONIFIED);
+
+                } else if (toolbar.btnMaxBounds().contains(p)) {
+                    alternarMaximizar();
+
+                } else if (toolbar.btnCerrarBounds().contains(p)) {
+                    confirmarCerrar();
+                }
             }
         });
 
-        raizPanel.addMouseMotionListener(new MouseAdapter() {
+        toolbar.addMouseMotionListener(new MouseAdapter() {
+
             @Override
             public void mouseDragged(MouseEvent e) {
+
                 if (!maximizado
                         && !toolbar.btnCerrarBounds().contains(e.getPoint())
                         && !toolbar.btnMaxBounds().contains(e.getPoint())
                         && !toolbar.btnMinBounds().contains(e.getPoint())) {
-                    // Solo arrastrar desde la toolbar
-                    if (e.getY() <= Toolbar.getAlto()) {
-                        setLocation(e.getXOnScreen() - mouseX,
-                                    e.getYOnScreen() - mouseY);
-                    }
+
+                    setLocation(
+                            e.getXOnScreen() - mouseX,
+                            e.getYOnScreen() - mouseY
+                    );
                 }
             }
+
             @Override
             public void mouseMoved(MouseEvent e) {
                 toolbar.actualizarHover(e.getPoint());
@@ -299,12 +313,12 @@ public Editor() {
     }
 
     // ==================== GETTERS ====================
-    public boolean isMaximizado()        { return maximizado;      }
-    public EditorController getController()      { return controller;      }
-    public EditorController getEditorController(){ return controller;      }
-    public PanelCanvas      getPanelCanvas()     { return panelCanvas;     }
-    public PanelAssets      getPanelAssets()     { return panelAssets;     }
-    public JPanel           getRaizPanel()       { return raizPanel;       }
+    public boolean isMaximizado() { return maximizado;}
+    public EditorController getController() { return controller;}
+    public EditorController getEditorController(){ return controller;}
+    public PanelCanvas getPanelCanvas() { return panelCanvas;}
+    public PanelAssets  getPanelAssets() { return panelAssets;}
+    public JPanel getRaizPanel() { return raizPanel;}
 
     public void refrescarHierarchy() {
         SwingUtilities.invokeLater(() -> panelHierarchy.refrescar());

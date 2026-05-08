@@ -13,6 +13,10 @@ import javax.swing.border.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 
 /**
  * Panel derecho del editor — Propiedades del elemento seleccionado.
@@ -103,17 +107,8 @@ public class PanelProperties extends JPanel {
             }
 
             cuerpo.add(Box.createVerticalGlue());
-            
-            // Sección de Reproductor de Audio (Última sección)
-            agregarSeccionAudioPlayer();
         } else if (assetActual != null) {
             agregarSeccionInfoArchivo(assetActual);
-            
-            String name = assetActual.getName().toLowerCase();
-            if (name.endsWith(".mp3") || name.endsWith(".wav") || 
-                name.endsWith(".ogg") || name.endsWith(".mp4")) {
-                agregarSeccionAssetMedia(assetActual);
-            }
         }
 
         cuerpo.revalidate();
@@ -121,7 +116,7 @@ public class PanelProperties extends JPanel {
     }
 
     private void agregarSeccionInfoArchivo(File file) {
-        JPanel sec = crearSeccion("📄 Asset: Info");
+        JPanel sec = crearSeccion("Asset: Info");
         
         sec.add(crearFila("Nombre", crearLabelValor(file.getName())));
         sec.add(crearFila("Tipo", crearLabelValor(obtenerExtension(file))));
@@ -145,31 +140,6 @@ public class PanelProperties extends JPanel {
         cuerpo.add(sec);
     }
 
-    private void agregarSeccionAssetMedia(File file) {
-        agregarSeparador();
-        JPanel sec = crearSeccion("🔊 Asset: Media");
-
-        // Nombre del archivo centrado
-        JLabel lblNombre = new JLabel(file.getName(), SwingConstants.CENTER);
-        lblNombre.setForeground(Color.TEXT_SECONDARY);
-        lblNombre.setFont(new Font("Arial", Font.PLAIN, 10));
-        lblNombre.setAlignmentX(CENTER_ALIGNMENT);
-        lblNombre.setBorder(BorderFactory.createEmptyBorder(4, 8, 2, 8));
-        sec.add(lblNombre);
-
-        sec.add(crearControlsAudio(() -> {
-            if (controller == null) return;
-            String p = file.getAbsolutePath();
-            String base = controller.getProjectPath();
-            if (base != null && p.startsWith(base)) {
-                p = p.substring(base.length());
-                if (p.startsWith(File.separator)) p = p.substring(1);
-            }
-            controller.playAudioPreview(p);
-        }));
-
-        cuerpo.add(sec);
-    }
 
     private String obtenerExtension(File f) {
         String n = f.getName();
@@ -184,96 +154,6 @@ public class PanelProperties extends JPanel {
         return String.format("%.1f %cB", bytes / Math.pow(1024, exp), pre);
     }
 
-    private void agregarSeccionAudioPlayer() {
-        JPanel sec = crearSeccion("🔊 Audio Preview");
-
-        // Lista de archivos de audio del proyecto
-        DefaultListModel<String> model = new DefaultListModel<>();
-        JList<String> list = new JList<>(model);
-        list.setBackground(Color.PANEL_BACKGROUND);
-        list.setForeground(Color.TEXT_PRIMARY);
-        list.setFont(new Font("Arial", Font.PLAIN, 11));
-        list.setSelectionBackground(Color.TREE_SELECTION);
-        list.setSelectionForeground(Color.TEXT_PRIMARY);
-        list.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        list.setFixedCellHeight(22);
-
-        if (controller != null && controller.getProjectPath() != null) {
-            File audioDir = new File(controller.getProjectPath(), "assets/audio");
-            if (audioDir.exists()) {
-                File[] files = audioDir.listFiles((d, name) ->
-                    name.endsWith(".wav") || name.endsWith(".mp3") || name.endsWith(".ogg"));
-                if (files != null)
-                    for (File f : files) model.addElement("🔊  " + f.getName());
-            }
-        }
-
-        if (model.isEmpty()) model.addElement("  — sin archivos de audio —");
-
-        JScrollPane audioScroll = new JScrollPane(list);
-        audioScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-        audioScroll.setPreferredSize(new Dimension(0, 90));
-        audioScroll.setBackground(Color.PANEL_BACKGROUND);
-        audioScroll.getViewport().setBackground(Color.PANEL_BACKGROUND);
-        audioScroll.setBorder(BorderFactory.createLineBorder(Color.BORDER_COLOR, 1));
-        audioScroll.getVerticalScrollBar().setUI(new ScrollBarPersonalizado());
-        sec.add(audioScroll);
-
-        // Controles de reproducción
-        sec.add(crearControlsAudio(() -> {
-            String sel = list.getSelectedValue();
-            if (sel == null || sel.startsWith("  —")) return;
-            String nombre = sel.replace("🔊  ", "").trim();
-            if (controller != null) controller.playAudioPreview("assets/audio/" + nombre);
-        }));
-
-        cuerpo.add(sec);
-    }
-
-    /**
-     * Construye el bloque de controles Play/Stop con estilo consistente.
-     * @param onPlay acción a ejecutar al pulsar Play
-     */
-    private JPanel crearControlsAudio(Runnable onPlay) {
-        JPanel controls = new JPanel(new GridLayout(1, 2, 6, 0));
-        controls.setBackground(Color.BACKGROUND);
-        controls.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
-        controls.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-
-        JButton btnPlay = crearBotonAudio("▶  Play",  Color.BUTTON_DEFAULT, Color.BUTTON_HOVER);
-        JButton btnStop = crearBotonAudio("⏹  Stop",  Color.PANEL_BACKGROUND, Color.BUTTON_HOVER);
-
-        btnPlay.addActionListener(e -> onPlay.run());
-        btnStop.addActionListener(e -> { if (controller != null) controller.stopAudioPreview(); });
-
-        controls.add(btnPlay);
-        controls.add(btnStop);
-        return controls;
-    }
-
-    private JButton crearBotonAudio(String texto, java.awt.Color bg, java.awt.Color hover) {
-        JButton btn = new JButton(texto) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? hover : bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-                g2.setColor(Color.BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setForeground(Color.TEXT_PRIMARY);
-        btn.setFont(new Font("Arial", Font.PLAIN, 11));
-        btn.setFocusPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
     private void mostrarMensajeVacio() {
         JLabel lbl = new JLabel("Selecciona una entidad");
         lbl.setForeground(Color.TEXT_SECONDARY);
@@ -285,7 +165,7 @@ public class PanelProperties extends JPanel {
 
     // ==================== SECCIÓN: ENTIDAD ====================
     private void agregarSeccionEntidad() {
-        JPanel sec = crearSeccion("📦 Entidad");
+        JPanel sec = crearSeccion("Entidad");
 
         // Nombre
         JTextField campoNombre = crearTextField(entidadActual.getName());
@@ -354,7 +234,7 @@ public class PanelProperties extends JPanel {
 
             // Punto de partida: carpeta Assets del proyecto
             if (controller != null && controller.getProjectPath() != null) {
-                File assets = new File(controller.getProjectPath(), "Assets");
+                File assets = new File(controller.getProjectPath(), "assets");
                 if (!assets.exists()) assets = new File(controller.getProjectPath(), "assets");
                 if (assets.exists()) chooser.setCurrentDirectory(assets);
             }
@@ -371,13 +251,22 @@ public class PanelProperties extends JPanel {
 
             // Convertir a ruta relativa al proyecto si es posible
             String rutaFinal = archivo.getAbsolutePath();
+
             if (controller != null && controller.getProjectPath() != null) {
-                String base = controller.getProjectPath();
+
+                File baseDir = new File(controller.getProjectPath());
+
+                String base = baseDir.getAbsolutePath();
+
+                if (!base.endsWith(File.separator)) {
+                    base += File.separator;
+                }
+
                 if (rutaFinal.startsWith(base)) {
                     rutaFinal = rutaFinal.substring(base.length());
-                    if (rutaFinal.startsWith(File.separator))
-                        rutaFinal = rutaFinal.substring(1);
                 }
+
+                rutaFinal = rutaFinal.replace("\\", "/");
             }
 
             campoImg.setText(rutaFinal);
@@ -385,9 +274,22 @@ public class PanelProperties extends JPanel {
             // Crear SpriteRenderer y asignarlo a la entidad
             SpriteRenderer sr = new SpriteRenderer();
             sr.setSpritePath(rutaFinal);
+
+            // Obtener tamaño real de la imagen
+            BufferedImage img;
+            try (InputStream is = Files.newInputStream(archivo.toPath())) {
+                img = ImageIO.read(is);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Error al procesar la imagen", e);
+            }
+
+            if (img != null) {
+                sr.setFrameWidth(img.getWidth());
+                sr.setFrameHeight(img.getHeight());
+            }
+
             entidadActual.addComponent(sr);
             guardar();
-
             // Recargar el panel para que aparezca la sección SpriteRenderer
             reconstruirCuerpo();
         });
@@ -412,7 +314,7 @@ public class PanelProperties extends JPanel {
 
     // ==================== SECCIÓN: TRANSFORM ====================
     private void agregarSeccionTransform(Transform t) {
-        JPanel sec = crearSeccion("📐 Transform");
+        JPanel sec = crearSeccion("Transform");
 
         sec.add(crearFila("Pos X",    crearFloatField(t.getX(),       v -> { t.setX(v);        guardar(); })));
         sec.add(crearFila("Pos Y",    crearFloatField(t.getY(),       v -> { t.setY(v);        guardar(); })));
@@ -426,7 +328,7 @@ public class PanelProperties extends JPanel {
 
     // ==================== SECCIÓN: SPRITE RENDERER ====================
     private void agregarSeccionSprite(SpriteRenderer s) {
-        JPanel sec = crearSeccion("🖼 SpriteRenderer");
+        JPanel sec = crearSeccion("SpriteRenderer");
 
         JTextField campoRuta = crearTextField(s.getSpritePath() != null ? s.getSpritePath() : "");
         campoRuta.addActionListener(e -> {
@@ -463,11 +365,12 @@ public class PanelProperties extends JPanel {
     private void agregarPreviewImagen(JPanel sec, String spritePath) {
         File imgFile = resolverRutaImagen(spritePath);
         if (imgFile == null || !imgFile.exists()) {
-            sec.add(crearFila("Preview", crearLabelValor("⚠ Imagen no encontrada")));
+            sec.add(crearFila("Preview", crearLabelValor("Imagen no encontrada")));
             return;
         }
         try {
             BufferedImage img = ImageIO.read(imgFile);
+
             if (img == null) return;
 
             int maxW = 180, maxH = 180;
@@ -503,27 +406,49 @@ public class PanelProperties extends JPanel {
     }
 
     private File resolverRutaImagen(String spritePath) {
-        if (controller == null) return null;
+        if (controller == null || spritePath == null || spritePath.isBlank()) {
+            return null;
+        }
 
         // 1. Ruta absoluta
         File f = new File(spritePath);
-        if (f.isAbsolute() && f.exists()) return f;
+
+        if (f.isAbsolute() && f.exists()) {
+            return f;
+        }
 
         // 2. Relativa al proyecto
         String projectPath = controller.getProjectPath();
+
         if (projectPath != null && !projectPath.isBlank()) {
+
+            // assets/player.png
             f = new File(projectPath, spritePath);
-            if (f.exists()) return f;
-            // 3. Dentro de Assets
-            f = new File(projectPath, "Assets" + File.separator + spritePath);
-            if (f.exists()) return f;
+
+            if (f.exists()) {
+                return f;
+            }
+
+            // player.png -> assets/player.png
+            if (!spritePath.startsWith("assets")) {
+
+                f = new File(
+                        projectPath,
+                        "assets" + File.separator + spritePath
+                );
+
+                if (f.exists()) {
+                    return f;
+                }
+            }
         }
+
         return null;
     }
 
     // ==================== SECCIÓN: COLLIDER ====================
     private void agregarSeccionCollider(Collider c) {
-        JPanel sec = crearSeccion("🟥 Collider");
+        JPanel sec = crearSeccion("Collider");
 
         String[] formas = {"RECTANGLE", "CIRCLE"};
         JComboBox<String> comboForma = new JComboBox<>(formas);

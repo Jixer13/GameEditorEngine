@@ -2,11 +2,13 @@ package org.motor2d.editor;
 
 import org.motor2d.core.Engine;
 import org.motor2d.graphics.Camara;
+import org.motor2d.model.Entity;
+import org.motor2d.model.components.SpriteRenderer;
+import org.motor2d.model.components.Transform;
 import org.motor2d.utilities.Color;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.imageio.ImageIO;
@@ -20,10 +22,10 @@ import javax.imageio.ImageIO;
 public class PanelCanvas extends JPanel {
 
     // ==================== CONSTANTES ====================
-    private static final double ZOOM_MIN       = 0.05;
-    private static final double ZOOM_MAX       = 32.0;
-    private static final double ZOOM_STEP      = 0.12;
-    private static final int    CHECKER_SIZE   = 12;
+    private static final double ZOOM_MIN = 0.05;
+    private static final double ZOOM_MAX = 32.0;
+    private static final double ZOOM_STEP = 0.12;
+    private static final int CHECKER_SIZE = 12;
 
     // ==================== ESTADO DE VISTA ====================
     private double zoom = 1.0;
@@ -31,8 +33,8 @@ public class PanelCanvas extends JPanel {
     private double offsetY = 0;
     
     // Para previsualización de imágenes individuales
-    private BufferedImage imagen       = null;
-    private String        rutaImagen   = null;
+    private BufferedImage imagen = null;
+    private String rutaImagen = null;
 
     // Variables auxiliares para el arrastre (pan)
     private int dragStartX, dragStartY;
@@ -255,11 +257,11 @@ public class PanelCanvas extends JPanel {
 
     private void dibujarSeleccion(Graphics2D g2) {
         if (controller == null) return;
-        org.motor2d.model.Entity selected = controller.getSelectedEntity();
+        Entity selected = controller.getSelectedEntity();
         if (selected == null || !selected.isActive()) return;
         
-        org.motor2d.model.components.Transform t = selected.getComponent(org.motor2d.model.components.Transform.class);
-        org.motor2d.model.components.SpriteRenderer s = selected.getComponent(org.motor2d.model.components.SpriteRenderer.class);
+        Transform t = selected.getComponent(Transform.class);
+        SpriteRenderer s = selected.getComponent(SpriteRenderer.class);
         
         if (t != null && s != null) {
             Camara cam = Engine.getCamara();

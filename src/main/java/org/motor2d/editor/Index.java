@@ -180,7 +180,11 @@ public class Index extends JFrame {
             
             // Actualizar el explorador de assets para que apunte a la carpeta del proyecto
             if (editor.getPanelAssets() != null) {
-                editor.getPanelAssets().setRootDirectory(new File(ruta));
+                File rootPath = esNuevo
+                        ? new File(ruta, nombre)
+                        : new File(ruta);
+
+                editor.getPanelAssets().setRootDirectory(rootPath);
             }
             
             editor.refrescarHierarchy();

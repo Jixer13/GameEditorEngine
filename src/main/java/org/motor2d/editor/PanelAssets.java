@@ -25,8 +25,8 @@ public class PanelAssets extends JPanel {
     private DefaultMutableTreeNode nodoSeleccionado;
     private File carpetaActual;
 
-    private File   carpetaProyectos;
-    private File   rutaProyecto;
+    private File carpetaProyectos;
+    private File rutaProyecto;
     private final PanelCanvas canvas;
 
     private EditorController controller;
@@ -34,20 +34,19 @@ public class PanelAssets extends JPanel {
     private Editor editor;
 
     // ==================== CONSTRUCTOR ====================
-    public PanelAssets(File rutaProyecto, File carpetaProyectos,
-                       PanelCanvas canvas) {
-        this.rutaProyecto     = rutaProyecto;
-        this.carpetaProyectos = carpetaProyectos;
-        this.canvas           = canvas;
+    public PanelAssets(File rutaProyecto, File carpetaProyectos, PanelCanvas canvas) {
+        this.rutaProyecto= rutaProyecto;
+        this.carpetaProyectos= carpetaProyectos;
+        this.canvas= canvas;
         setOpaque(false);
         setLayout(new BorderLayout());
         construirUI();
     }
 
     public void init(EditorController controller, PanelProperties panelProperties, Editor editor) {
-        this.controller      = controller;
+        this.controller = controller;
         this.panelProperties = panelProperties;
-        this.editor          = editor;
+        this.editor = editor;
     }
 
     public void setRootDirectory(File newRoot) {
@@ -111,7 +110,7 @@ public class PanelAssets extends JPanel {
 
     // ==================== ÁRBOL ====================
     private DefaultMutableTreeNode crearArbolCarpetas() {
-        DefaultMutableTreeNode raiz = new DefaultMutableTreeNode(new NodoAsset("Assets", carpetaProyectos));
+        DefaultMutableTreeNode raiz = new DefaultMutableTreeNode(new NodoAsset(carpetaProyectos.getName(), carpetaProyectos));
         if (carpetaProyectos.exists() && carpetaProyectos.isDirectory()) {
             agregarArchivosRecursivos(raiz, carpetaProyectos);
         }
@@ -186,8 +185,8 @@ public class PanelAssets extends JPanel {
             }
         }
 
-        popupMenu.add(crearItemMenu("🔄 Refrescar", e -> refrescarArbol()));
-        popupMenu.add(crearItemMenu("📂 Abrir en Explorador", e -> abrirRutaDesdePopup()));
+        popupMenu.add(crearItemMenu("Refrescar", e -> refrescarArbol()));
+        popupMenu.add(crearItemMenu("Abrir en Explorador", e -> abrirRutaDesdePopup()));
         popupMenu.addSeparator();
         popupMenu.add(crearItemMenuDanger("🗑 Eliminar", e -> eliminarCarpetaDesdePopup()));
     }

@@ -217,7 +217,9 @@ public class Renderer {
             try {
                 Sprite sprite = Sprite.load(projectPath, image.getImagePath());
                 g2.drawImage(sprite.getImage(), (int) x, (int) y, (int) image.getWidth(), (int) image.getHeight(), null);
-            } catch (IOException e) {
+            }catch (IOException e) {
+                System.err.println("Error cargando sprite: " + e.getMessage());
+                e.printStackTrace();
                 renderPlaceholder(g2, (int) x, (int) y, (int) image.getWidth(), (int) image.getHeight());
             }
         }
