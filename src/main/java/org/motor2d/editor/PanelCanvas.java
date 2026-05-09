@@ -4,6 +4,7 @@ import org.motor2d.core.Engine;
 import org.motor2d.editor.helpers.EditorController;
 import org.motor2d.graphics.Camara;
 import org.motor2d.model.Entity;
+import org.motor2d.model.Tilemap;
 import org.motor2d.model.components.SpriteRenderer;
 import org.motor2d.model.components.Transform;
 import org.motor2d.model.components.TilemapLayer.LayerType;
@@ -35,6 +36,7 @@ public class PanelCanvas extends JPanel {
 
     // Pintura
     private boolean modoPintura = false;
+    private boolean modoBorrado = false;
     private int tileIdPincel = -1;
 
     // Arrastre y edición
@@ -60,8 +62,15 @@ public class PanelCanvas extends JPanel {
 
     public void setModoPintura(boolean activo, int tileId) {
         this.modoPintura = activo;
+        this.modoBorrado = false;
         this.tileIdPincel = tileId;
         setCursor(activo ? Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR) : Cursor.getDefaultCursor());
+    }
+
+    public void setModoBorrado(boolean activo) {
+        this.modoBorrado = activo;
+        this.modoPintura = false;
+        setCursor(activo ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
     }
 
     public void mostrarImagen(File archivo) {
@@ -111,13 +120,26 @@ public class PanelCanvas extends JPanel {
 
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (modoPintura && tileIdPincel != -1) {
-                        controller.paintTileAtPixel(e.getX(), e.getY(), tileIdPincel, LayerType.MIDGROUND);
+                        LayerType capa = LayerType.MIDGROUND;
+                        if (controller.getEditor() != null && controller.getEditor().getPanelAssets() != null) {
+                            capa = controller.getEditor().getPanelAssets().getPanelPaleta().getCapaSeleccionada();
+                        }
+                        controller.registrarEstado(); // Guardar estado antes de pintar
+                        controller.paintTileAtPixel(e.getX(), e.getY(), tileIdPincel, capa);
+                        repaint();
+                    } else if (modoBorrado) {
+                        LayerType capa = LayerType.MIDGROUND;
+                        if (controller.getEditor() != null && controller.getEditor().getPanelAssets() != null) {
+                            capa = controller.getEditor().getPanelAssets().getPanelPaleta().getCapaSeleccionada();
+                        }
+                        controller.eraseTileAtPixel(e.getX(), e.getY(), capa);
                         repaint();
                     } else if (imagen == null && controller != null) {
                         float worldX = controller.screenToWorldX(e.getX());
                         float worldY = controller.screenToWorldY(e.getY());
                         Entity picked = controller.pickEntity(worldX, worldY);
                         if (picked != null) {
+                            controller.registrarEstado(); // Guardar estado antes de mover
                             controller.setSelectedEntity(picked);
                             entidadSiendoArrastrada = picked;
                             lastMouseWorldX = worldX;
@@ -138,7 +160,10 @@ public class PanelCanvas extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (arrastrandoEntidad && controller != null) controller.saveProject();
+                if ((arrastrandoEntidad || modoPintura) && controller != null) {
+                    controller.registrarEstado(); // Guardar estado final después de la acción
+                    controller.saveProject();
+                }
                 arrastrandoCamara = false; arrastrandoEntidad = false;
                 entidadSiendoArrastrada = null;
                 setCursor(Cursor.getDefaultCursor());
@@ -162,6 +187,13 @@ public class PanelCanvas extends JPanel {
 
         addMouseMotionListener(new MouseAdapter() {
             @Override
+            public void mouseMoved(MouseEvent e) {
+                if (modoPintura) {
+                    repaint(); // Para actualizar el ghost tile
+                }
+            }
+
+            @Override
             public void mouseDragged(MouseEvent e) {
                 if (arrastrandoCamara) {
                     offsetX = offsetXAlIniciar + (e.getX() - dragStartX);
@@ -177,6 +209,20 @@ public class PanelCanvas extends JPanel {
                         t.setY(t.getY() + (worldY - lastMouseWorldY));
                     }
                     lastMouseWorldX = worldX; lastMouseWorldY = worldY;
+                    repaint();
+                } else if (modoBorrado && SwingUtilities.isLeftMouseButton(e)) {
+                    LayerType capa = LayerType.MIDGROUND;
+                    if (controller.getEditor() != null && controller.getEditor().getPanelAssets() != null) {
+                        capa = controller.getEditor().getPanelAssets().getPanelPaleta().getCapaSeleccionada();
+                    }
+                    controller.eraseTileAtPixel(e.getX(), e.getY(), capa);
+                    repaint();
+                } else if (modoPintura && tileIdPincel != -1 && SwingUtilities.isLeftMouseButton(e)) {
+                    LayerType capa = LayerType.MIDGROUND;
+                    if (controller.getEditor() != null && controller.getEditor().getPanelAssets() != null) {
+                        capa = controller.getEditor().getPanelAssets().getPanelPaleta().getCapaSeleccionada();
+                    }
+                    controller.paintTileAtPixel(e.getX(), e.getY(), tileIdPincel, capa);
                     repaint();
                 }
             }
@@ -236,8 +282,43 @@ public class PanelCanvas extends JPanel {
             Engine.render(g2);
             dibujarRejilla(g2);
             dibujarSeleccion(g2);
+            if (modoPintura) {
+                dibujarGhostTile(g2);
+            }
         }
         g2.dispose();
+    }
+
+    private void dibujarGhostTile(Graphics2D g2) {
+        Point mousePos = getMousePosition();
+        if (mousePos == null) return;
+
+        try {
+            Tilemap tilemap = controller.getSceneManager().getCurrentScene().getTilemap();
+            if (tilemap == null) return;
+
+            float worldX = controller.screenToWorldX(mousePos.x);
+            float worldY = controller.screenToWorldY(mousePos.y);
+
+            int col = tilemap.pixelToCol(worldX);
+            int row = tilemap.pixelToRow(worldY);
+
+            float snapWorldX = col * tilemap.getTileWidth();
+            float snapWorldY = row * tilemap.getTileHeight();
+
+            Camara cam = Engine.getCamara();
+            float screenX = cam.worldToScreenX(snapWorldX);
+            float screenY = cam.worldToScreenY(snapWorldY);
+            float sw = tilemap.getTileWidth() * cam.getZoom();
+            float sh = tilemap.getTileHeight() * cam.getZoom();
+
+            // Dibujar rectángulo semi-transparente
+            g2.setColor(new java.awt.Color(255, 255, 0, 100));
+            g2.fillRect((int)screenX, (int)screenY, (int)sw, (int)sh);
+            g2.setColor(java.awt.Color.YELLOW);
+            g2.drawRect((int)screenX, (int)screenY, (int)sw, (int)sh);
+            
+        } catch (Exception e) {}
     }
 
     private void dibujarRejilla(Graphics2D g2) {

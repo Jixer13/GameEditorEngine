@@ -37,6 +37,9 @@ public class TilemapLayer {
 
     // Operaciones sobre la cuadrícula
     public void placeTile(int col, int row, int tileId) {
+        // Al colocar un tile, limpiamos cualquier dato previo en esa posición
+        // para garantizar que la celda solo contenga un tile a la vez.
+        tileGrid.remove(buildKey(col, row));
         tileGrid.put(buildKey(col, row), tileId);
     }
 

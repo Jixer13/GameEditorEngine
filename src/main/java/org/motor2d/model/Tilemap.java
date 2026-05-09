@@ -94,6 +94,11 @@ public class Tilemap {
     public int getRows() { return rows; }
     public void setRows(int rows) { this.rows = rows; }
 
+    public void resize(int newCols, int newRows) {
+        this.cols = newCols;
+        this.rows = newRows;
+    }
+
     public int getTileWidth() { return tileWidth; }
     public void setTileWidth(int tileWidth) { this.tileWidth = tileWidth; }
 

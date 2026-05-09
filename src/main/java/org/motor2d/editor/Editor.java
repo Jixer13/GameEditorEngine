@@ -74,9 +74,25 @@ public Editor() {
     actualizarTitulo(); // Llamada inicial
 
     setUndecorated(true);
-    // ... el resto sigue igual ...
 
-        setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    // Shortcuts globales (Undo/Redo)
+    KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+        if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED && e.isControlDown()) {
+            if (e.getKeyCode() == java.awt.event.KeyEvent.VK_Z) {
+                if (e.isAltDown()) controller.redo();
+                else controller.undo();
+                return true;
+            }
+            if (e.getKeyCode() == java.awt.event.KeyEvent.VK_Y) {
+                controller.redo();
+                return true;
+            }
+        }
+        return false;
+    });
+
+    setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
@@ -322,7 +338,17 @@ public Editor() {
     public JPanel getRaizPanel() { return raizPanel;}
 
     public void refrescarHierarchy() {
-        SwingUtilities.invokeLater(() -> panelHierarchy.refrescar());
+        SwingUtilities.invokeLater(() -> {
+            panelHierarchy.refrescar();
+            refrescarAssets();
+        });
+    }
+
+    public void refrescarAssets() {
+        if (panelAssets != null) {
+            panelAssets.refrescarArbol();
+            panelAssets.refrescarComboTilesets();
+        }
     }
 
     /**

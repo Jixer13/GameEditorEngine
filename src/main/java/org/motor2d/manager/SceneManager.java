@@ -109,6 +109,10 @@ public class SceneManager {
         this.currentScene = null;
     }
 
+    public void setCurrentScene(Scene scene) {
+        this.currentScene = scene;
+    }
+
     // -------------------------------------------------------
     // LISTAR ESCENAS
     // -------------------------------------------------------

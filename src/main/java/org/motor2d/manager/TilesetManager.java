@@ -172,6 +172,13 @@ public class TilesetManager {
         eraseTileAtPixel(pixelX, pixelY, TilemapLayer.LayerType.MIDGROUND);
     }
 
+    public void resizeTilemap(int cols, int rows) throws IOException {
+        checkSceneOpen();
+        checkTilemapExists();
+        sceneManager.getCurrentScene().getTilemap().resize(cols, rows);
+        sceneManager.saveScene();
+    }
+
     // CONSULTAR
 
     public Integer getTileIdAt(int col, int row,

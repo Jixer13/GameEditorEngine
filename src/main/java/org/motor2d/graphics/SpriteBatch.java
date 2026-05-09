@@ -1,25 +1,22 @@
 package org.motor2d.graphics;
 
-import org.motor2d.utilities.GameColor;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * SpriteBatch - Agrupa comandos de dibujo para minimizar cambios de estado en Graphics2D.
+ * SpriteBatch - Mantiene una lista de comandos de dibujo para respetar el orden secuencial.
  */
 public class SpriteBatch {
 
     private final Graphics2D g2;
-    private final Map<Image, List<DrawCall>> batches;
+    private final List<DrawCall> drawCalls;
     private boolean isDrawing = false;
 
     public SpriteBatch(Graphics2D g2) {
         this.g2 = g2;
-        this.batches = new HashMap<>();
+        this.drawCalls = new ArrayList<>();
     }
 
     public Graphics2D getGraphics() {
@@ -29,25 +26,22 @@ public class SpriteBatch {
     public void begin() {
         if (isDrawing) throw new IllegalStateException("Batch already drawing");
         isDrawing = true;
-        batches.clear();
+        drawCalls.clear();
     }
 
     public void draw(Image image, float x, float y, float width, float height, 
                      float rotation, float scaleX, float scaleY, float opacity) {
         if (!isDrawing) throw new IllegalStateException("Must call begin() before draw()");
+        if (image == null) return;
         
-        batches.computeIfAbsent(image, k -> new ArrayList<>())
-               .add(new DrawCall(x, y, width, height, rotation, scaleX, scaleY, opacity));
+        drawCalls.add(new DrawCall(image, x, y, width, height, rotation, scaleX, scaleY, opacity));
     }
 
     public void end() {
         if (!isDrawing) throw new IllegalStateException("Must call begin() before end()");
         
-        for (Map.Entry<Image, List<DrawCall>> entry : batches.entrySet()) {
-            Image img = entry.getKey();
-            for (DrawCall call : entry.getValue()) {
-                renderCall(img, call);
-            }
+        for (DrawCall call : drawCalls) {
+            renderCall(call.image, call);
         }
         
         isDrawing = false;
@@ -62,10 +56,16 @@ public class SpriteBatch {
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, call.opacity));
         }
 
-        // Transformación (Posición, Rotación, Escala)
+        // Transformación
         g2.translate(call.x, call.y);
-        g2.rotate(Math.toRadians(call.rotation), call.width / 2.0, call.height / 2.0);
-        g2.scale(call.scaleX, call.scaleY);
+        
+        if (call.rotation != 0) {
+            g2.rotate(Math.toRadians(call.rotation), call.width / 2.0, call.height / 2.0);
+        }
+        
+        if (call.scaleX != 1.0f || call.scaleY != 1.0f) {
+            g2.scale(call.scaleX, call.scaleY);
+        }
 
         g2.drawImage(img, 0, 0, (int)call.width, (int)call.height, null);
 
@@ -75,10 +75,12 @@ public class SpriteBatch {
     }
 
     private static class DrawCall {
+        Image image;
         float x, y, width, height, rotation, scaleX, scaleY, opacity;
 
-        DrawCall(float x, float y, float width, float height, float rotation, 
+        DrawCall(Image image, float x, float y, float width, float height, float rotation, 
                  float scaleX, float scaleY, float opacity) {
+            this.image = image;
             this.x = x; this.y = y; this.width = width; this.height = height;
             this.rotation = rotation; this.scaleX = scaleX; this.scaleY = scaleY;
             this.opacity = opacity;

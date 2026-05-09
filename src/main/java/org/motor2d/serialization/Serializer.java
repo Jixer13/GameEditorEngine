@@ -93,6 +93,14 @@ public class Serializer {
     }
 
     // SCENES
+    public String serializeScene(Scene scene) throws IOException {
+        return mapper.writeValueAsString(scene);
+    }
+
+    public Scene deserializeScene(String json) throws IOException {
+        return mapper.readValue(json, Scene.class);
+    }
+
     public void saveScene(Scene scene, String projectPath) throws IOException {
         File file = getSceneFile(projectPath, scene.getName());
         ensureDirectoryExists(file.getParentFile());
@@ -114,10 +122,10 @@ public class Serializer {
 
     // Devuelve los nombres de todas las escenas disponibles en el proyecto
     public List<String> listScenes(String projectPath) {
-        List<String> sceneNames = new ArrayList<>();
+        List<File> filesList = new ArrayList<>();
         File scenesDir = new File(projectPath, SCENES_FOLDER);
 
-        if (!scenesDir.exists()) return sceneNames;
+        if (!scenesDir.exists()) return new ArrayList<>();
 
         File[] files = scenesDir.listFiles(
                 (dir, name) -> name.endsWith(".json") // solo archivos .json
@@ -125,9 +133,17 @@ public class Serializer {
 
         if (files != null) {
             for (File file : files) {
-                // "main.json" → "main"
-                sceneNames.add(file.getName().replace(".json", ""));
+                filesList.add(file);
             }
+        }
+
+        // Ordenar por fecha de modificación (descendente: el más nuevo primero)
+        filesList.sort((f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+
+        List<String> sceneNames = new ArrayList<>();
+        for (File file : filesList) {
+            // "main.json" → "main"
+            sceneNames.add(file.getName().replace(".json", ""));
         }
 
         return sceneNames;

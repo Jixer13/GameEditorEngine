@@ -7,6 +7,9 @@ import org.motor2d.graphics.Camara;
 import org.motor2d.graphics.Sprite;
 import org.motor2d.manager.*;
 import org.motor2d.model.Entity;
+import org.motor2d.model.Scene;
+import org.motor2d.model.Tile;
+import org.motor2d.model.Tileset;
 import org.motor2d.model.components.SpriteRenderer;
 import org.motor2d.model.components.TilemapLayer;
 import org.motor2d.model.components.Transform;
@@ -27,6 +30,7 @@ public class EditorController {
     private final EntityManager entityManager;
     private final TilesetManager tilesetManager;
     private final ResourceManager resourceManager;
+    private final HistoryManager historyManager;
 
     private PanelCanvas canvas;
     private Editor editor;
@@ -39,6 +43,50 @@ public class EditorController {
         this.entityManager   = new EntityManager(sceneManager);
         this.tilesetManager  = new TilesetManager(projectManager, sceneManager);
         this.resourceManager = new ResourceManager(projectManager);
+        this.historyManager  = new HistoryManager();
+    }
+
+    public void registrarEstado() {
+        if (isSceneOpen()) {
+            historyManager.pushState(sceneManager.getCurrentScene());
+        }
+    }
+
+    public void undo() {
+        if (!isSceneOpen()) return;
+        Scene anterior = historyManager.undo(sceneManager.getCurrentScene());
+        if (anterior != null) {
+            aplicarEstadoHistorial(anterior);
+            if (editor != null) editor.mostrarMensajeEstado("Deshacer realizado");
+        }
+    }
+
+    public void redo() {
+        if (!isSceneOpen()) return;
+        Scene siguiente = historyManager.redo();
+        if (siguiente != null) {
+            aplicarEstadoHistorial(siguiente);
+            if (editor != null) editor.mostrarMensajeEstado("Rehacer realizado");
+        }
+    }
+
+    private void aplicarEstadoHistorial(Scene nueva) {
+        // Al restaurar una escena, los componentes Transform pierden su conexión con el TransformSystem 
+        // o el sistema viejo es invalidado. Necesitamos volver a registrar los Transform.
+        nueva.getTransformSystem().updatePrevious(); // Asegurar estado limpio
+        for (Entity e : nueva.getEntities()) {
+            org.motor2d.model.components.Transform t = e.getComponent(org.motor2d.model.components.Transform.class);
+            if (t != null) {
+                t.registerInSystem(nueva.getTransformSystem());
+            }
+        }
+
+        sceneManager.setCurrentScene(nueva);
+        inicializarMotor();
+        if (editor != null) {
+            editor.refrescarHierarchy();
+            editor.getPanelCanvas().repaint();
+        }
     }
 
     public Entity getSelectedEntity() {
@@ -96,6 +144,10 @@ public class EditorController {
         this.editor = editor;
     }
 
+    public Editor getEditor() {
+        return editor;
+    }
+
     // ==================== GESTIÓN DE PROYECTO ====================
 
     public boolean createProject(String name, String path) {
@@ -103,9 +155,11 @@ public class EditorController {
             projectManager.createProject(name, path);
             sceneManager.loadScene("main");
             inicializarMotor();
+            registrarEstado();
             if (editor != null) {
                 editor.actualizarTitulo();
                 editor.actualizarStatusBar();
+                editor.refrescarHierarchy();
                 editor.mostrarMensajeEstado("Proyecto creado: " + name);
             }
             return true;
@@ -122,11 +176,26 @@ public class EditorController {
                     .getInitialScene()
                     .replace("scenes/", "")
                     .replace(".json", "");
-            sceneManager.loadScene(initialScene);
+
+            try {
+                sceneManager.loadScene(initialScene);
+            } catch (Exception e) {
+                // Fallback: si la escena inicial no existe, cargar la más reciente
+                List<String> scenes = listScenes();
+                if (!scenes.isEmpty()) {
+                    sceneManager.loadScene(scenes.get(0));
+                } else {
+                    // Si no hay ninguna escena en el proyecto, crear una por defecto
+                    sceneManager.createScene("main");
+                }
+            }
+
             inicializarMotor();
+            registrarEstado();
             if (editor != null) {
                 editor.actualizarTitulo();
                 editor.actualizarStatusBar();
+                editor.refrescarHierarchy();
                 editor.mostrarMensajeEstado("Proyecto abierto correctamente");
             }
             return true;
@@ -143,6 +212,7 @@ public class EditorController {
             sceneManager.closeScene();
             projectManager.closeProject();
             Sprite.clearCache();
+            Tile.resetIdCounter(0);
             if (editor != null) {
                 editor.actualizarTitulo();
                 editor.actualizarStatusBar();
@@ -193,17 +263,77 @@ public class EditorController {
     }
 
     public Entity createEntity(String name) {
-        try { return entityManager.createEntity(name);
+        try {
+            Entity e = entityManager.createEntity(name);
+            registrarEstado();
+            return e;
         } catch (Exception e) { return null; }
     }
 
     public boolean paintTileAtPixel(float pixelX, float pixelY, int tileId, TilemapLayer.LayerType layer) {
         try {
+            if (!isSceneOpen()) return false;
+            
+            // Auto-crear Tilemap si no existe
+            if (sceneManager.getCurrentScene().getTilemap() == null) {
+                tilesetManager.createTilemap(100, 100, 32, 32);
+            }
+            
             float worldX = screenToWorldX(pixelX);
             float worldY = screenToWorldY(pixelY);
             tilesetManager.paintTileAtPixel(worldX, worldY, tileId, layer);
             return true;
         } catch (Exception e) { return false; }
+    }
+
+    public boolean eraseTileAtPixel(float pixelX, float pixelY, TilemapLayer.LayerType layer) {
+        try {
+            if (!isSceneOpen()) return false;
+            registrarEstado(); // Guardar estado antes de borrar
+            tilesetManager.eraseTileAtPixel(screenToWorldX(pixelX), screenToWorldY(pixelY), layer);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    public boolean resizeTilemap(int cols, int rows) {
+        try {
+            if (!isSceneOpen()) return false;
+            registrarEstado();
+            tilesetManager.resizeTilemap(cols, rows);
+            return true;
+        } catch (Exception e) {
+            mostrarError("Error al redimensionar tilemap", e.getMessage());
+            return false;
+        }
+    }
+
+    public void addTileToCurrentTileset(String name, String relativePath) {
+        try {
+            Tileset current = null;
+            if (editor != null && editor.getPanelAssets() != null) {
+                String tsName = editor.getPanelAssets().getSelectedTilesetName();
+                if (tsName != null) {
+                    current = projectManager.getCurrentProject().getTilesetByName(tsName);
+                }
+            }
+            
+            if (current == null) {
+                List<Tileset> all = projectManager.getCurrentProject().getTilesets();
+                if (!all.isEmpty()) current = all.get(0);
+            }
+            
+            if (current == null) {
+                current = tilesetManager.createTileset("Default Tileset", relativePath, 32, 32);
+            }
+            
+            tilesetManager.addTile(current, name, relativePath, false);
+            if (editor != null) {
+                editor.getPanelAssets().refrescarComboTilesets();
+                editor.getPanelAssets().mostrarPaleta(current);
+            }
+        } catch (Exception e) {
+            mostrarError("Error al añadir tile", e.getMessage());
+        }
     }
 
     // ==================== AUDIO PREVIEW ====================
@@ -253,8 +383,11 @@ public class EditorController {
     }
 
     public Entity createSpriteEntity(String name, String spritePath) {
-        try { return entityManager.createSpriteEntity(name, spritePath); }
-        catch (Exception e) { mostrarError("Error al crear entidad", e.getMessage()); return null; }
+        try {
+            Entity e = entityManager.createSpriteEntity(name, spritePath);
+            registrarEstado();
+            return e;
+        } catch (Exception e) { mostrarError("Error al crear entidad", e.getMessage()); return null; }
     }
 
     public void setEntitySprite(Entity entity, String relativePath) {
@@ -279,6 +412,7 @@ public class EditorController {
                 }
             }
             
+            registrarEstado();
             saveProject();
             if (editor != null) editor.getPanelCanvas().repaint();
             
@@ -288,30 +422,45 @@ public class EditorController {
     }
 
     public boolean removeEntity(Entity entity) {
-        try { entityManager.removeEntity(entity); return true; }
-        catch (Exception e) { mostrarError("Error al eliminar entidad", e.getMessage()); return false; }
+        try {
+            entityManager.removeEntity(entity);
+            registrarEstado();
+            return true;
+        } catch (Exception e) { mostrarError("Error al eliminar entidad", e.getMessage()); return false; }
     }
 
     public Entity duplicateEntity(Entity entity) {
-        try { return entityManager.duplicateEntity(entity); }
-        catch (Exception e) { mostrarError("Error al duplicar entidad", e.getMessage()); return null; }
+        try {
+            Entity e = entityManager.duplicateEntity(entity);
+            registrarEstado();
+            return e;
+        } catch (Exception e) { mostrarError("Error al duplicar entidad", e.getMessage()); return null; }
     }
 
     // ==================== UI ELEMENTS ====================
 
     public UIElement createUILabel(String name, String text) {
-        try { return entityManager.createUILabel(name, text); }
-        catch (Exception e) { mostrarError("Error al crear Label", e.getMessage()); return null; }
+        try {
+            UIElement e = entityManager.createUILabel(name, text);
+            registrarEstado();
+            return e;
+        } catch (Exception e) { mostrarError("Error al crear Label", e.getMessage()); return null; }
     }
 
     public UIElement createUIButton(String name, String text) {
-        try { return entityManager.createUIButton(name, text); }
-        catch (Exception e) { mostrarError("Error al crear Botón", e.getMessage()); return null; }
+        try {
+            UIElement e = entityManager.createUIButton(name, text);
+            registrarEstado();
+            return e;
+        } catch (Exception e) { mostrarError("Error al crear Botón", e.getMessage()); return null; }
     }
 
     public UIElement createUIImage(String name, String path) {
-        try { return entityManager.createUIImage(name, path); }
-        catch (Exception e) { mostrarError("Error al crear Imagen", e.getMessage()); return null; }
+        try {
+            UIElement e = entityManager.createUIImage(name, path);
+            registrarEstado();
+            return e;
+        } catch (Exception e) { mostrarError("Error al crear Imagen", e.getMessage()); return null; }
     }
 
     public List<UIElement> getAllUIElements() {
@@ -320,13 +469,19 @@ public class EditorController {
     }
 
     public boolean removeUIElement(UIElement element) {
-        try { entityManager.removeUIElement(element); return true; }
-        catch (Exception e) { mostrarError("Error al eliminar UI", e.getMessage()); return false; }
+        try {
+            entityManager.removeUIElement(element);
+            registrarEstado();
+            return true;
+        } catch (Exception e) { mostrarError("Error al eliminar UI", e.getMessage()); return false; }
     }
 
     public boolean createScene(String name) {
-        try { sceneManager.createScene(name); return true; }
-        catch (Exception e) { mostrarError("Error al crear escena", e.getMessage()); return false; }
+        try {
+            sceneManager.createScene(name);
+            registrarEstado();
+            return true;
+        } catch (Exception e) { mostrarError("Error al crear escena", e.getMessage()); return false; }
     }
 
     public boolean loadScene(String name) {

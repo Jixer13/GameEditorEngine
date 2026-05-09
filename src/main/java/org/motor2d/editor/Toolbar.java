@@ -9,31 +9,25 @@ import java.awt.event.MouseEvent;
 
 /**
  * Barra de título personalizada del editor.
- * Gestiona los botones de minimizar, maximizar y cerrar,
- * así como el arrastre de la ventana.
  */
 public class Toolbar extends JPanel {
 
-    // ==================== CONSTANTES ====================
     private static final int MENUBAR_ALTO = 35;
     private static final int BTN_ANCHO    = 40;
     private static final int BTN_ALTO     = 22;
 
-    // ==================== ESTADO ====================
     private boolean btnCerrarHover    = false;
     private boolean btnMaximizarHover = false;
     private boolean btnMinimizarHover = false;
     private boolean btnPlayHover      = false;
     private boolean btnStopHover      = false;
+    private boolean btnUndoHover      = false;
+    private boolean btnRedoHover      = false;
 
-    // ==================== COMPONENTES SWING ====================
     private JMenuBar menuBar;
     private JMenu menuArchivo;
-
-    // ==================== REFERENCIAS ====================
     private final Editor editor;
 
-    // ==================== CONSTRUCTOR ====================
     public Toolbar(Editor editor) {
         this.editor = editor;
         setOpaque(true); 
@@ -42,7 +36,6 @@ public class Toolbar extends JPanel {
         setLayout(null);
         crearMenuArchivo();
         
-        // Agregar listener para clics en los botones de Play/Stop
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -51,6 +44,10 @@ public class Toolbar extends JPanel {
                     editor.getController().togglePlay();
                 } else if (btnStopBounds().contains(p)) {
                     editor.getController().stopPlay();
+                } else if (btnUndoBounds().contains(p)) {
+                    editor.getController().undo();
+                } else if (btnRedoBounds().contains(p)) {
+                    editor.getController().redo();
                 }
                 repaint();
             }
@@ -66,7 +63,6 @@ public class Toolbar extends JPanel {
         menuArchivo.setForeground(Color.TEXT_PRIMARY);
         menuArchivo.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        // Estilizar los items del menú
         JMenuItem itemNuevo = crearItem("Nuevo Proyecto", e -> {
             String nombre = JOptionPane.showInputDialog(editor, "Nombre del nuevo proyecto:");
             if (nombre != null && !nombre.isBlank()) {
@@ -74,8 +70,6 @@ public class Toolbar extends JPanel {
                 chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
                     editor.getController().createProject(nombre.trim(), chooser.getSelectedFile().getAbsolutePath());
-                    editor.refrescarHierarchy();
-                    editor.actualizarTitulo();
                 }
             }
         });
@@ -85,33 +79,16 @@ public class Toolbar extends JPanel {
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
                 editor.getController().openProject(chooser.getSelectedFile().getAbsolutePath());
-                editor.refrescarHierarchy();
-                editor.actualizarTitulo();
             }
         });
 
         JMenuItem itemGuardar = crearItem("Guardar", e -> editor.getController().saveProject());
-
-        JMenuItem itemGuardarComo = crearItem("Guardar como...", e -> {
-            JFileChooser chooser = new JFileChooser(System.getProperty("user.home"));
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            if (chooser.showOpenDialog(editor) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    editor.getController().getProjectManager().saveProjectAs(chooser.getSelectedFile().getAbsolutePath());
-                    JOptionPane.showMessageDialog(editor, "Proyecto guardado en la nueva ubicación.");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(editor, "Error al guardar: " + ex.getMessage());
-                }
-            }
-        });
-
         JMenuItem itemSalir = crearItem("Salir", e -> editor.confirmarSalida());
 
         menuArchivo.add(itemNuevo);
         menuArchivo.add(itemAbrir);
         menuArchivo.addSeparator();
         menuArchivo.add(itemGuardar);
-        menuArchivo.add(itemGuardarComo);
         menuArchivo.addSeparator();
         menuArchivo.add(itemSalir);
 
@@ -129,136 +106,56 @@ public class Toolbar extends JPanel {
         return item;
     }
 
-    // ==================== BOUNDS DE BOTONES ====================
-    public Rectangle btnMinBounds() {
-        int x = getWidth() - BTN_ANCHO * 3 - 6;
-        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
-        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
-    }
+    public Rectangle btnMinBounds() { return new Rectangle(getWidth() - BTN_ANCHO * 3 - 6, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnMaxBounds() { return new Rectangle(getWidth() - BTN_ANCHO * 2 - 6, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnCerrarBounds() { return new Rectangle(getWidth() - BTN_ANCHO - 6, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnPlayBounds() { return new Rectangle(getWidth() / 2 - BTN_ANCHO, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnStopBounds() { return new Rectangle(getWidth() / 2, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnUndoBounds() { return new Rectangle(80, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
+    public Rectangle btnRedoBounds() { return new Rectangle(80 + BTN_ANCHO, (MENUBAR_ALTO - BTN_ALTO) / 2, BTN_ANCHO, BTN_ALTO); }
 
-    public Rectangle btnMaxBounds() {
-        int x = getWidth() - BTN_ANCHO * 2 - 6;
-        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
-        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
-    }
-
-    public Rectangle btnCerrarBounds() {
-        int x = getWidth() - BTN_ANCHO - 6;
-        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
-        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
-    }
-
-    public Rectangle btnPlayBounds() {
-        int x = getWidth() / 2 - BTN_ANCHO;
-        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
-        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
-    }
-
-    public Rectangle btnStopBounds() {
-        int x = getWidth() / 2;
-        int y = (MENUBAR_ALTO - BTN_ALTO) / 2;
-        return new Rectangle(x, y, BTN_ANCHO, BTN_ALTO);
-    }
-
-    // ==================== ACTUALIZAR HOVER ====================
     public void actualizarHover(Point p) {
-        boolean dentroCerrar = btnCerrarBounds().contains(p);
-        boolean dentroMax    = btnMaxBounds().contains(p);
-        boolean dentroMin    = btnMinBounds().contains(p);
-        boolean dentroPlay   = btnPlayBounds().contains(p);
-        boolean dentroStop   = btnStopBounds().contains(p);
-
-        if (dentroCerrar != btnCerrarHover ||
-            dentroMax    != btnMaximizarHover ||
-            dentroMin    != btnMinimizarHover ||
-            dentroPlay   != btnPlayHover ||
-            dentroStop   != btnStopHover) {
-            btnCerrarHover    = dentroCerrar;
-            btnMaximizarHover = dentroMax;
-            btnMinimizarHover = dentroMin;
-            btnPlayHover      = dentroPlay;
-            btnStopHover      = dentroStop;
-            repaint();
-        }
+        btnCerrarHover    = btnCerrarBounds().contains(p);
+        btnMaximizarHover = btnMaxBounds().contains(p);
+        btnMinimizarHover = btnMinBounds().contains(p);
+        btnPlayHover      = btnPlayBounds().contains(p);
+        btnStopHover      = btnStopBounds().contains(p);
+        btnUndoHover      = btnUndoBounds().contains(p);
+        btnRedoHover      = btnRedoBounds().contains(p);
+        repaint();
     }
 
-    // ==================== PINTADO ====================
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g); 
-        pintarBotones((Graphics2D) g, editor.isMaximizado());
-    }
-
-    public void pintarBotones(Graphics2D g2, boolean maximizado) {
-        pintarBotonMinimizar(g2);
-        pintarBotonMaximizar(g2, maximizado);
-        pintarBotonCerrar(g2);
-        pintarBotonPlay(g2);
-        pintarBotonStop(g2);
-    }
-
-    private void pintarBotonMinimizar(Graphics2D g2) {
-        Rectangle r = btnMinBounds();
-        if (btnMinimizarHover) {
-            g2.setColor(Color.BTN_HOVER);
-            g2.fillRect(r.x, r.y, r.width, r.height);
-        }
-        pintarTextoBoton(g2, r, "−");
-    }
-
-    private void pintarBotonMaximizar(Graphics2D g2, boolean maximizado) {
-        Rectangle r = btnMaxBounds();
-        if (btnMaximizarHover) {
-            g2.setColor(Color.BTN_HOVER);
-            g2.fillRect(r.x, r.y, r.width, r.height);
-        }
-        pintarTextoBoton(g2, r, maximizado ? "❐" : "□");
-    }
-
-    private void pintarBotonCerrar(Graphics2D g2) {
-        Rectangle r = btnCerrarBounds();
-        if (btnCerrarHover) {
-            g2.setColor(Color.CLOSE_HOVER);
-            g2.fillRect(r.x, r.y, r.width, r.height);
-        }
-        pintarTextoBoton(g2, r, "✕");
-    }
-
-    private void pintarBotonPlay(Graphics2D g2) {
-        Rectangle r = btnPlayBounds();
+        Graphics2D g2 = (Graphics2D) g;
+        pintarBoton(g2, btnMinBounds(), btnMinimizarHover, "−", false);
+        pintarBoton(g2, btnMaxBounds(), btnMaximizarHover, editor.isMaximizado() ? "❐" : "□", false);
+        pintarBoton(g2, btnCerrarBounds(), btnCerrarHover, "✕", true);
+        
         boolean isPlaying = editor.getController().isPlaying();
+        pintarBoton(g2, btnPlayBounds(), btnPlayHover, "▶", false, isPlaying ? java.awt.Color.GREEN : Color.TEXT_PRIMARY);
+        pintarBoton(g2, btnStopBounds(), btnStopHover, "⏹", false);
         
-        if (btnPlayHover) {
-            g2.setColor(Color.BTN_HOVER);
-            g2.fillRect(r.x, r.y, r.width, r.height);
-        }
-        
-        g2.setColor(isPlaying ? java.awt.Color.GREEN : Color.TEXT_PRIMARY);
-        pintarTextoBoton(g2, r, "▶");
+        pintarBoton(g2, btnUndoBounds(), btnUndoHover, "⟲", false);
+        pintarBoton(g2, btnRedoBounds(), btnRedoHover, "⟳", false);
     }
 
-    private void pintarBotonStop(Graphics2D g2) {
-        Rectangle r = btnStopBounds();
-        if (btnStopHover) {
-            g2.setColor(Color.BTN_HOVER);
-            g2.fillRect(r.x, r.y, r.width, r.height);
-        }
-        pintarTextoBoton(g2, r, "⏹");
+    private void pintarBoton(Graphics2D g2, Rectangle r, boolean hover, String txt, boolean danger) {
+        pintarBoton(g2, r, hover, txt, danger, Color.TEXT_PRIMARY);
     }
 
-    private void pintarTextoBoton(Graphics2D g2, Rectangle r, String txt) {
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setColor(Color.TEXT_PRIMARY);
+    private void pintarBoton(Graphics2D g2, Rectangle r, boolean hover, String txt, boolean danger, java.awt.Color textColor) {
+        if (hover) {
+            g2.setColor(danger ? Color.CLOSE_HOVER : Color.BTN_HOVER);
+            g2.fillRect(r.x, r.y, r.width, r.height);
+        }
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(textColor);
         g2.setFont(new Font("SansSerif", Font.BOLD, 13));
         FontMetrics fm = g2.getFontMetrics();
-        int tx = r.x + (r.width  - fm.stringWidth(txt)) / 2;
-        int ty = r.y + (r.height - fm.getHeight()) / 2 + fm.getAscent();
-        g2.drawString(txt, tx, ty);
+        g2.drawString(txt, r.x + (r.width - fm.stringWidth(txt)) / 2, r.y + (r.height - fm.getHeight()) / 2 + fm.getAscent());
     }
 
-    // ==================== ALTURA ====================
-    public static int getAlto() {
-        return MENUBAR_ALTO;
-    }
+    public static int getAlto() { return MENUBAR_ALTO; }
 }
