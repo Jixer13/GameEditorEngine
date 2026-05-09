@@ -6,6 +6,7 @@ import org.motor2d.model.Entity;
 import org.motor2d.model.components.Animation;
 import org.motor2d.model.components.Collider;
 import org.motor2d.model.components.Component;
+import org.motor2d.model.components.PlayerController;
 import org.motor2d.model.components.SpriteRenderer;
 import org.motor2d.model.components.Transform;
 import org.motor2d.model.ui.UIButton;
@@ -91,12 +92,18 @@ public class PanelProperties extends JPanel {
         cuerpo.setLayout(new BoxLayout(cuerpo, BoxLayout.Y_AXIS));
         cuerpo.setBackground(Color.BACKGROUND);
 
-        scroll = new JScrollPane(cuerpo);
+        // Envolver el cuerpo en un panel con BorderLayout para que el BoxLayout
+        // no se estire y los elementos se mantengan arriba, permitiendo el scroll.
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.BACKGROUND);
+        wrapper.add(cuerpo, BorderLayout.NORTH);
+
+        scroll = new JScrollPane(wrapper);
         scroll.setBackground(Color.BACKGROUND);
         scroll.getViewport().setBackground(Color.BACKGROUND);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getVerticalScrollBar().setUI(new ScrollBarPersonalizado());
-        scroll.getHorizontalScrollBar().setUI(new ScrollBarPersonalizado());
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
         add(scroll, BorderLayout.CENTER);
 
         mostrarMensajeVacio();
@@ -117,6 +124,7 @@ public class PanelProperties extends JPanel {
                 else if (comp instanceof SpriteRenderer s)  agregarSeccionSprite(s);
                 else if (comp instanceof Collider c)        agregarSeccionCollider(c);
                 else if (comp instanceof Animation a)       agregarSeccionAnimation(a);
+                else if (comp instanceof PlayerController p) agregarSeccionPlayerController(p);
             }
 
             cuerpo.add(Box.createVerticalGlue());
@@ -256,15 +264,6 @@ public class PanelProperties extends JPanel {
         });
         sec.add(crearFila("Nombre", campoNombre));
 
-        // ID (solo lectura)
-        sec.add(crearFila("ID", crearLabelValor(String.valueOf(entidadActual.getId()))));
-
-        // Tag
-        JTextField campoTag = crearTextField(
-                entidadActual.getTag() != null ? entidadActual.getTag() : "");
-        campoTag.addActionListener(e -> { entidadActual.setTag(campoTag.getText().trim()); guardar(); });
-        sec.add(crearFila("Tag", campoTag));
-
         // Activo
         JCheckBox chkActivo = new JCheckBox();
         chkActivo.setSelected(entidadActual.isActive());
@@ -272,9 +271,41 @@ public class PanelProperties extends JPanel {
         chkActivo.addActionListener(e -> { entidadActual.setActive(chkActivo.isSelected()); guardar(); });
         sec.add(crearFila("Activo", chkActivo));
 
-        // Nº Componentes
-        sec.add(crearFila("Componentes",
-                crearLabelValor(String.valueOf(entidadActual.getComponents().size()))));
+        // --- Gestión de Componentes ---
+        agregarSeparador();
+        
+        // Es Jugador (PlayerController)
+        JCheckBox chkJugador = new JCheckBox();
+        chkJugador.setSelected(entidadActual.hasComponent(PlayerController.class));
+        chkJugador.setBackground(Color.PANEL_ALT_BACKGROUND);
+        chkJugador.addActionListener(e -> {
+            if (chkJugador.isSelected()) entidadActual.addComponent(new PlayerController());
+            else entidadActual.removeComponent(PlayerController.class);
+            guardar(); reconstruirCuerpo();
+        });
+        sec.add(crearFila("Player", chkJugador));
+
+        // Animación (Animation)
+        JCheckBox chkAnim = new JCheckBox();
+        chkAnim.setSelected(entidadActual.hasComponent(Animation.class));
+        chkAnim.setBackground(Color.PANEL_ALT_BACKGROUND);
+        chkAnim.addActionListener(e -> {
+            if (chkAnim.isSelected()) entidadActual.addComponent(new Animation());
+            else entidadActual.removeComponent(Animation.class);
+            guardar(); reconstruirCuerpo();
+        });
+        sec.add(crearFila("Animator", chkAnim));
+
+        // Físicas (Collider)
+        JCheckBox chkColl = new JCheckBox();
+        chkColl.setSelected(entidadActual.hasComponent(Collider.class));
+        chkColl.setBackground(Color.PANEL_ALT_BACKGROUND);
+        chkColl.addActionListener(e -> {
+            if (chkColl.isSelected()) entidadActual.addComponent(new Collider());
+            else entidadActual.removeComponent(Collider.class);
+            guardar(); reconstruirCuerpo();
+        });
+        sec.add(crearFila("Collider", chkColl));
 
         // ── Imagen PNG (solo si la entidad NO tiene SpriteRenderer todavía) ──
         boolean tieneSprite = entidadActual.hasComponent(SpriteRenderer.class);
@@ -542,21 +573,206 @@ public class PanelProperties extends JPanel {
 
     // ==================== SECCIÓN: ANIMATION ====================
     private void agregarSeccionAnimation(Animation a) {
-        JPanel sec = crearSeccion("🎞 Animation");
+        JPanel sec = crearSeccion("Animación");
 
-        JTextField campoNombre = crearTextField(a.getName() != null ? a.getName() : "");
-        campoNombre.addActionListener(e -> { a.setName(campoNombre.getText().trim()); guardar(); });
-        sec.add(crearFila("Nombre", campoNombre));
-
-        sec.add(crearFila("Frame dur.", crearFloatField(a.getFrameDuration(),
-                v -> { a.setFrameDuration(v); guardar(); })));
-        sec.add(crearFila("Frames",
-                crearLabelValor(a.getFrames() != null ? String.valueOf(a.getFrames().size()) : "0")));
-
+        // --- Configuración Global ---
+        sec.add(crearFila("Frame dur.", crearFloatField(a.getFrameDuration(), v -> { a.setFrameDuration(v); guardar(); })));
+        
         JCheckBox chkLoop = new JCheckBox(); chkLoop.setSelected(a.isLooping());
         chkLoop.setBackground(Color.PANEL_ALT_BACKGROUND);
         chkLoop.addActionListener(e -> { a.setLooping(chkLoop.isSelected()); guardar(); });
         sec.add(crearFila("Loop", chkLoop));
+
+        JCheckBox chkAuto = new JCheckBox(); chkAuto.setSelected(a.isAutoPlay());
+        chkAuto.setBackground(Color.PANEL_ALT_BACKGROUND);
+        chkAuto.addActionListener(e -> { a.setAutoPlay(chkAuto.isSelected()); guardar(); });
+        sec.add(crearFila("Auto Play", chkAuto));
+
+        agregarSeparador();
+
+        // --- Gestión de Secuencias ---
+        JPanel panelSecuencias = new JPanel(new BorderLayout(5, 0));
+        panelSecuencias.setBackground(org.motor2d.utilities.Color.PANEL_ALT_BACKGROUND);
+        panelSecuencias.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        panelSecuencias.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        // Asegurar que al menos existe 'default' para poder añadir frames
+        if (a.getSequences().isEmpty()) {
+            a.addSequence("default");
+            a.setCurrentSequence("default");
+        }
+
+        JComboBox<String> comboSeq = new JComboBox<>();
+        a.getSequences().keySet().forEach(comboSeq::addItem);
+        if (a.getCurrentSequence() != null) comboSeq.setSelectedItem(a.getCurrentSequence());
+        
+        comboSeq.addActionListener(e -> {
+            String sel = (String) comboSeq.getSelectedItem();
+            if (sel != null && !sel.equals(a.getCurrentSequence())) {
+                a.setCurrentSequence(sel);
+                guardar();
+                reconstruirCuerpo();
+            }
+        });
+
+        JButton btnAddSeq = new JButton("+");
+        btnAddSeq.setPreferredSize(new Dimension(35, 22));
+        btnAddSeq.setBackground(new java.awt.Color(70, 70, 70));
+        btnAddSeq.setForeground(java.awt.Color.WHITE);
+        btnAddSeq.setFocusPainted(false);
+        btnAddSeq.setFont(new Font("Arial", Font.BOLD, 14));
+        btnAddSeq.setBorder(BorderFactory.createLineBorder(new java.awt.Color(100, 100, 100)));
+        btnAddSeq.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAddSeq.addActionListener(e -> {
+            String name = JOptionPane.showInputDialog(this, "Nombre de la nueva secuencia:");
+            if (name != null && !name.isBlank()) {
+                a.addSequence(name);
+                a.setCurrentSequence(name);
+                guardar();
+                reconstruirCuerpo();
+            }
+        });
+
+        JButton btnDelSeq = new JButton("-");
+        btnDelSeq.setPreferredSize(new Dimension(35, 22));
+        btnDelSeq.setBackground(new java.awt.Color(100, 50, 50));
+        btnDelSeq.setForeground(java.awt.Color.WHITE);
+        btnDelSeq.setFocusPainted(false);
+        btnDelSeq.setFont(new Font("Arial", Font.BOLD, 14));
+        btnDelSeq.setBorder(BorderFactory.createLineBorder(new java.awt.Color(120, 70, 70)));
+        btnDelSeq.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnDelSeq.addActionListener(e -> {
+            String sel = (String) comboSeq.getSelectedItem();
+            if (sel != null && !sel.equals("default")) {
+                int resp = JOptionPane.showConfirmDialog(this, "¿Borrar la secuencia '" + sel + "'?", "Borrar", JOptionPane.YES_NO_OPTION);
+                if (resp == JOptionPane.YES_OPTION) {
+                    a.removeSequence(sel);
+                    a.setCurrentSequence("default");
+                    guardar();
+                    reconstruirCuerpo();
+                }
+            }
+        });
+
+        JLabel lblSeq = new JLabel("Seq: ");
+        lblSeq.setForeground(org.motor2d.utilities.Color.TEXT_SECONDARY);
+        lblSeq.setFont(new Font("Arial", Font.PLAIN, 11));
+
+        panelSecuencias.add(lblSeq, BorderLayout.WEST);
+        panelSecuencias.add(comboSeq, BorderLayout.CENTER);
+        
+        JPanel panelBtns = new JPanel(new GridLayout(1, 2, 2, 0));
+        panelBtns.setOpaque(false);
+        panelBtns.add(btnAddSeq);
+        panelBtns.add(btnDelSeq);
+        panelSecuencias.add(panelBtns, BorderLayout.EAST);
+        
+        sec.add(panelSecuencias);
+
+        // --- Gestión de Frames de la secuencia actual ---
+        String current = a.getCurrentSequence();
+        if (current != null && a.getSequences().containsKey(current)) {
+            java.util.List<String> frames = a.getSequences().get(current);
+            
+            JPanel panelFrames = new JPanel();
+            panelFrames.setLayout(new BoxLayout(panelFrames, BoxLayout.Y_AXIS));
+            panelFrames.setBackground(org.motor2d.utilities.Color.PANEL_ALT_BACKGROUND);
+            panelFrames.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 8));
+
+            for (int i = 0; i < frames.size(); i++) {
+                final int index = i;
+                String path = frames.get(i);
+                
+                JPanel filaFrame = new JPanel(new BorderLayout(5, 0));
+                filaFrame.setBackground(org.motor2d.utilities.Color.PANEL_ALT_BACKGROUND);
+                filaFrame.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24)); // Altura fija
+                
+                JLabel lblFrame = new JLabel(new File(path).getName());
+                lblFrame.setFont(new Font("Arial", Font.PLAIN, 10));
+                lblFrame.setForeground(org.motor2d.utilities.Color.TEXT_SECONDARY);
+                
+                JButton btnRemove = new JButton("x");
+                btnRemove.setPreferredSize(new Dimension(22, 20));
+                btnRemove.setBackground(new java.awt.Color(180, 50, 50));
+                btnRemove.setForeground(java.awt.Color.WHITE);
+                btnRemove.setFocusPainted(false);
+                btnRemove.setBorder(BorderFactory.createEmptyBorder());
+                btnRemove.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                btnRemove.addActionListener(ev -> {
+                    frames.remove(index);
+                    guardar();
+                    reconstruirCuerpo();
+                });
+
+                filaFrame.add(lblFrame, BorderLayout.CENTER);
+                filaFrame.add(btnRemove, BorderLayout.EAST);
+                panelFrames.add(filaFrame);
+            }
+
+            JButton btnAddFrame = new JButton("Añadir Frames...");
+            btnAddFrame.setBackground(new java.awt.Color(60, 60, 60));
+            btnAddFrame.setForeground(java.awt.Color.WHITE);
+            btnAddFrame.setFocusPainted(false);
+            btnAddFrame.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnAddFrame.addActionListener(e -> {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setMultiSelectionEnabled(true);
+                if (controller != null && controller.getProjectPath() != null) {
+                    chooser.setCurrentDirectory(new File(controller.getProjectPath(), "assets"));
+                }
+                if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    for (File f : chooser.getSelectedFiles()) {
+                        String rel = controller.getProjectManager().getCurrentProject().getPath();
+                        String path = f.getAbsolutePath();
+                        if (path.startsWith(rel)) {
+                            path = path.substring(rel.length());
+                            if (path.startsWith(File.separator)) path = path.substring(1);
+                        }
+                        frames.add(path.replace("\\", "/"));
+                    }
+                    guardar();
+                    reconstruirCuerpo();
+                }
+            });
+            btnAddFrame.setAlignmentX(CENTER_ALIGNMENT);
+            panelFrames.add(Box.createVerticalStrut(5));
+            panelFrames.add(btnAddFrame);
+            sec.add(panelFrames);
+        }
+
+        cuerpo.add(sec);
+        agregarSeparador();
+    }
+
+    // ==================== SECCIÓN: PLAYER CONTROLLER ====================
+    private void agregarSeccionPlayerController(PlayerController p) {
+        JPanel sec = crearSeccion("Player Controller");
+
+        sec.add(crearFila("Velocidad", crearFloatField(p.getSpeed(),     v -> { p.setSpeed(v);     guardar(); })));
+        sec.add(crearFila("Fuerza Salto", crearFloatField(p.getJumpForce(), v -> { p.setJumpForce(v); guardar(); })));
+
+        agregarSeparador();
+        sec.add(UIFactory.createHeaderLabel("  Mapping de Animaciones"));
+        
+        JTextField txtIdle = crearTextField(p.getAnimIdle());
+        txtIdle.addActionListener(e -> { p.setAnimIdle(txtIdle.getText().trim()); guardar(); });
+        sec.add(crearFila("Idle Seq", txtIdle));
+
+        JTextField txtWalkSide = crearTextField(p.getAnimWalkSide());
+        txtWalkSide.addActionListener(e -> { p.setAnimWalkSide(txtWalkSide.getText().trim()); guardar(); });
+        sec.add(crearFila("Walk Side Seq", txtWalkSide));
+
+        JTextField txtWalkUp = crearTextField(p.getAnimWalkUp());
+        txtWalkUp.addActionListener(e -> { p.setAnimWalkUp(txtWalkUp.getText().trim()); guardar(); });
+        sec.add(crearFila("Walk Up Seq", txtWalkUp));
+
+        JTextField txtWalkDown = crearTextField(p.getAnimWalkDown());
+        txtWalkDown.addActionListener(e -> { p.setAnimWalkDown(txtWalkDown.getText().trim()); guardar(); });
+        sec.add(crearFila("Walk Down Seq", txtWalkDown));
+
+        JTextField txtJump = crearTextField(p.getAnimJump());
+        txtJump.addActionListener(e -> { p.setAnimJump(txtJump.getText().trim()); guardar(); });
+        sec.add(crearFila("Jump Seq", txtJump));
 
         cuerpo.add(sec);
         agregarSeparador();

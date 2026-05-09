@@ -56,11 +56,22 @@ public class SpriteBatch {
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, call.opacity));
         }
 
-        // Transformación
+        // --- TRANSFORMACIÓN ---
+        // 1. Posición base
         g2.translate(call.x, call.y);
         
+        // 2. Rotación (alrededor del centro)
         if (call.rotation != 0) {
             g2.rotate(Math.toRadians(call.rotation), call.width / 2.0, call.height / 2.0);
+        }
+        
+        // 3. Escala / Flip
+        // Si hay flip (escala negativa), debemos desplazar para que no "salte"
+        if (call.scaleX < 0) {
+            g2.translate(call.width, 0);
+        }
+        if (call.scaleY < 0) {
+            g2.translate(0, call.height);
         }
         
         if (call.scaleX != 1.0f || call.scaleY != 1.0f) {

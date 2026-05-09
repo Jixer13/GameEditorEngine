@@ -7,7 +7,7 @@ import java.util.Set;
 /**
  * InputManager - Gestiona la entrada de teclado y ratón mediante polling.
  */
-public class InputManager implements KeyListener, MouseListener, MouseMotionListener {
+public class InputManager implements KeyListener, MouseListener, MouseMotionListener, FocusListener {
 
     // Estado de teclas y botones
     private static final boolean[] keys = new boolean[65536];
@@ -18,6 +18,16 @@ public class InputManager implements KeyListener, MouseListener, MouseMotionList
     // Posición del ratón
     private static float mouseX = 0;
     private static float mouseY = 0;
+
+    /**
+     * Resetea completamente el estado de todas las teclas y botones.
+     */
+    public static void clearState() {
+        java.util.Arrays.fill(keys, false);
+        java.util.Arrays.fill(keysLast, false);
+        java.util.Arrays.fill(buttons, false);
+        java.util.Arrays.fill(buttonsLast, false);
+    }
 
     /**
      * Sincroniza el estado actual con el anterior. 
@@ -108,4 +118,16 @@ public class InputManager implements KeyListener, MouseListener, MouseMotionList
     @Override public void mouseClicked(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}
     @Override public void mouseExited(MouseEvent e) {}
+
+    // ==================== FOCUS LISTENER ====================
+
+    @Override
+    public void focusGained(FocusEvent e) {
+        clearState();
+    }
+
+    @Override
+    public void focusLost(FocusEvent e) {
+        clearState();
+    }
 }

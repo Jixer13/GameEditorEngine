@@ -1,6 +1,7 @@
 package org.motor2d.editor;
 
 import org.motor2d.core.Engine;
+import org.motor2d.core.InputManager;
 import org.motor2d.editor.helpers.EditorController;
 import org.motor2d.graphics.Camara;
 import org.motor2d.model.Entity;
@@ -54,6 +55,13 @@ public class PanelCanvas extends JPanel {
         setBackground(java.awt.Color.BLACK);
         setFocusable(true);
         registrarEventos();
+        
+        // Registrar el InputManager del motor una sola vez
+        InputManager input = new InputManager();
+        addKeyListener(input);
+        addMouseListener(input);
+        addMouseMotionListener(input);
+        addFocusListener(input);
     }
 
     public void init(EditorController controller) {
@@ -95,6 +103,7 @@ public class PanelCanvas extends JPanel {
     // ==================== GESTIÓN DE EVENTOS ====================
     private void registrarEventos() {
         addMouseWheelListener(e -> {
+            if (Engine.isPlaying()) return;
             double factor = (e.getWheelRotation() < 0) ? (1.0 + ZOOM_STEP) : (1.0 - ZOOM_STEP);
             double mouseX = e.getX();
             double mouseY = e.getY();
@@ -110,6 +119,9 @@ public class PanelCanvas extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                // Solicitar foco al hacer clic para asegurar que el InputManager reciba eventos
+                requestFocusInWindow();
+
                 if (imagen != null) {
                     int w = 30, h = 30, bx = getWidth() - w - 10, by = 10;
                     if (e.getX() >= bx && e.getX() <= bx + w && e.getY() >= by && e.getY() <= by + h) {
@@ -119,6 +131,7 @@ public class PanelCanvas extends JPanel {
                 }
 
                 if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (Engine.isPlaying()) return;
                     if (modoPintura && tileIdPincel != -1) {
                         LayerType capa = LayerType.MIDGROUND;
                         if (controller.getEditor() != null && controller.getEditor().getPanelAssets() != null) {
@@ -171,6 +184,7 @@ public class PanelCanvas extends JPanel {
 
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (Engine.isPlaying()) return;
                 if (e.getClickCount() == 2) { resetVista(); actualizarCamaraMotor(); repaint(); }
             }
         });
@@ -195,6 +209,7 @@ public class PanelCanvas extends JPanel {
 
             @Override
             public void mouseDragged(MouseEvent e) {
+                if (Engine.isPlaying()) return;
                 if (arrastrandoCamara) {
                     offsetX = offsetXAlIniciar + (e.getX() - dragStartX);
                     offsetY = offsetYAlIniciar + (e.getY() - dragStartY);
@@ -230,7 +245,7 @@ public class PanelCanvas extends JPanel {
     }
 
     private void actualizarCamaraMotor() {
-        if (controller == null) return;
+        if (controller == null || Engine.isPlaying()) return;
         Camara cam = Engine.getCamara();
         if (cam != null) {
             cam.setZoom((float) zoom);
@@ -280,10 +295,12 @@ public class PanelCanvas extends JPanel {
         } else {
             actualizarCamaraMotor();
             Engine.render(g2);
-            dibujarRejilla(g2);
-            dibujarSeleccion(g2);
-            if (modoPintura) {
-                dibujarGhostTile(g2);
+            if (!Engine.isPlaying()) {
+                dibujarRejilla(g2);
+                dibujarSeleccion(g2);
+                if (modoPintura) {
+                    dibujarGhostTile(g2);
+                }
             }
         }
         g2.dispose();

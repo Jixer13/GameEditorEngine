@@ -26,7 +26,6 @@ public class Index extends JFrame {
     private static final int BUTTON_RADIUS      = 25;
     private static final int BUTTON_SPACING     = 30;
     private static final int BUTTON_CONTAINER_Y = 210;
-
     private static final String ICON_NEW_PROJECT = "/iconos/logoNewProject.png";
     private static final String ICON_OPEN        = "/iconos/logoCarpeta.png";
     private static final String ICON_EXIT        = "/iconos/logoSalir2.png";

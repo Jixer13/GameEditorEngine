@@ -17,7 +17,7 @@ import java.awt.Graphics2D;
 public class GameLoop implements Runnable {
 
     // ==================== ESTADO DEL BUCLE ====================
-    private boolean running = false;
+    private volatile boolean running = false;
     private final Scene scene;
     private final Renderer renderer;
     private final PhysicsSystem physics;
@@ -55,6 +55,7 @@ public class GameLoop implements Runnable {
 
     @Override
     public void run() {
+        // Inicializamos los valores de tiempo al arrancar el hilo
         Time.start();
         
         // Configuración de Timestep
@@ -66,10 +67,11 @@ public class GameLoop implements Runnable {
 
         while (running) {
             long now = System.nanoTime();
+            // Calculamos el tiempo transcurrido desde el último frame
             double elapsed = now - lastTime;
             lastTime = now;
             
-            // Evitar el "espiral de la muerte" si el proceso se bloquea
+            // Evitar el "espiral de la muerte" (max 0.25s por frame)
             if (elapsed > 250_000_000) elapsed = 250_000_000;
             
             accumulator += elapsed;
@@ -99,7 +101,7 @@ public class GameLoop implements Runnable {
                                         behavior.start();
                                         behavior.setStarted(true);
                                     }
-                                    behavior.update();
+                                    behavior.update(fixedDelta);
                                 }
                                 
                                 // 2. Actualizar Animaciones
@@ -129,9 +131,7 @@ public class GameLoop implements Runnable {
             float alpha = (float) (accumulator / nsPerUpdate);
 
             // Bloque de renderizado
-            if (canvas != null) {
-                // Pasamos el alpha al renderizado a través de una variable volátil o similar
-                // Para este motor simple, podemos guardarlo en Time o pasarlo al render
+            if (canvas != null && Engine.isPlaying()) {
                 Time.setInterpolation(alpha);
                 canvas.repaint();
             }

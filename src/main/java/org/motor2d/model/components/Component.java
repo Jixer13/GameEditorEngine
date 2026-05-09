@@ -14,7 +14,8 @@ import org.motor2d.model.Entity;
         @JsonSubTypes.Type(value = Transform.class,       name = "Transform"),
         @JsonSubTypes.Type(value = SpriteRenderer.class,  name = "SpriteRenderer"),
         @JsonSubTypes.Type(value = Collider.class,        name = "Collider"),
-        @JsonSubTypes.Type(value = Animation.class,       name = "Animation")
+        @JsonSubTypes.Type(value = Animation.class,       name = "Animation"),
+        @JsonSubTypes.Type(value = PlayerController.class, name = "PlayerController")
 })
 //no se usa directamente, solo existe para heredar
 public abstract class Component {

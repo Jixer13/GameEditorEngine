@@ -232,6 +232,39 @@ public Editor() {
 
     // ==================== TOGGLE PANELES ====================
 
+    public void bloquearUI(boolean bloquear) {
+        setHabilitadoRecursivo(panelHierarchy, !bloquear);
+        setHabilitadoRecursivo(panelProperties, !bloquear);
+        setHabilitadoRecursivo(panelAssets, !bloquear);
+        
+        // Deshabilitar entrada si es necesario
+        Cursor cursor = bloquear ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor();
+        panelHierarchy.setCursor(cursor);
+        panelProperties.setCursor(cursor);
+        panelAssets.setCursor(cursor);
+        
+        if (statusBar != null) {
+            statusBar.mostrarMensaje(bloquear ? "Modo JUEGO" : "Modo EDITOR", 2000);
+        }
+
+        // Forzar a Swing a redibujar todo el editor para reflejar el cambio de estado
+        SwingUtilities.invokeLater(() -> {
+            raizPanel.revalidate();
+            raizPanel.repaint();
+        });
+    }
+
+    private void setHabilitadoRecursivo(Container container, boolean habilitado) {
+        container.setEnabled(habilitado);
+        for (Component c : container.getComponents()) {
+            if (c instanceof Container) {
+                setHabilitadoRecursivo((Container) c, habilitado);
+            } else {
+                c.setEnabled(habilitado);
+            }
+        }
+    }
+
     /** Colapsa o expande el panel Hierarchy */
     public void toggleHierarchy() {
         boolean visible = splitIzqCentro.getDividerLocation() > 10;

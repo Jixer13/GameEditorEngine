@@ -16,8 +16,8 @@ public class Engine {
     private static GameLoop gameLoop;
     private static Renderer renderer;
     private static Camara camara;
+    private static InputManager inputManager;
     private static org.motor2d.manager.AudioManager audioManager;
-    private static org.motor2d.manager.PrefabManager prefabManager;
     private static Scene currentScene;
     private static boolean playing = false;
 
@@ -29,19 +29,11 @@ public class Engine {
     public static void init(Project project, Scene scene, JPanel canvas) {
         currentScene = scene;
 
-        // Inicializamos el sistema de entrada
-        InputManager input = new InputManager();
-        canvas.addKeyListener(input);
-        canvas.addMouseListener(input);
-        canvas.addMouseMotionListener(input);
-        canvas.setFocusable(true);
-        canvas.requestFocusInWindow();
-
+        // Limpiar estado de teclas para evitar que se queden pulsadas al reiniciar
+        InputManager.clearState();
+        
         // Inicializamos el sistema de audio
         audioManager = new org.motor2d.manager.AudioManager(project.getPath());
-
-        // Inicializamos el gestor de prefabs
-        prefabManager = new org.motor2d.manager.PrefabManager(project.getPath());
 
         // Creamos la cámara ajustada al tamaño del panel de dibujo
         camara = new Camara(canvas.getWidth(), canvas.getHeight());
@@ -85,6 +77,9 @@ public class Engine {
     public static void stop() {
         if (gameLoop != null) {
             gameLoop.stop();
+            // No hacemos join() aquí para no bloquear el hilo de Swing, 
+            // pero el flag volatile 'running' detendrá el bucle en el próximo frame.
+            gameLoop = null; 
         }
         if (audioManager != null) {
             audioManager.stopMusic();
@@ -103,6 +98,5 @@ public class Engine {
     
     public static Camara getCamara() { return camara; }
     public static org.motor2d.manager.AudioManager getAudioManager() { return audioManager; }
-    public static org.motor2d.manager.PrefabManager getPrefabManager() { return prefabManager; }
     public static Scene getCurrentScene() { return currentScene; }
 }

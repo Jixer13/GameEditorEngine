@@ -83,14 +83,11 @@ public class Toolbar extends JPanel {
         });
 
         JMenuItem itemGuardar = crearItem("Guardar", e -> editor.getController().saveProject());
-        JMenuItem itemSalir = crearItem("Salir", e -> editor.confirmarSalida());
 
         menuArchivo.add(itemNuevo);
         menuArchivo.add(itemAbrir);
         menuArchivo.addSeparator();
         menuArchivo.add(itemGuardar);
-        menuArchivo.addSeparator();
-        menuArchivo.add(itemSalir);
 
         menuBar.add(menuArchivo);
         menuBar.setBounds(5, 5, 60, 25);

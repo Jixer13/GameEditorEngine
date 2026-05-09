@@ -75,7 +75,7 @@ public class EditorController {
         // o el sistema viejo es invalidado. Necesitamos volver a registrar los Transform.
         nueva.getTransformSystem().updatePrevious(); // Asegurar estado limpio
         for (Entity e : nueva.getEntities()) {
-            org.motor2d.model.components.Transform t = e.getComponent(org.motor2d.model.components.Transform.class);
+            Transform t = e.getComponent(Transform.class);
             if (t != null) {
                 t.registerInSystem(nueva.getTransformSystem());
             }
@@ -228,6 +228,9 @@ public class EditorController {
 
     private void inicializarMotor() {
         if (canvas == null) return;
+        
+        // Detenemos cualquier hilo previo antes de crear uno nuevo
+        Engine.stop();
         
         // Inicializamos el motor estático con los datos actuales
         Engine.init(projectManager.getCurrentProject(), 
@@ -522,10 +525,19 @@ public class EditorController {
             stopPlay();
         } else {
             try {
-                // Guardar escena antes de jugar para poder restaurar luego
+                // Guardar estado actual antes de jugar para poder restaurar luego
                 sceneManager.saveScene();
                 Engine.setPlaying(true);
-                if (editor != null) editor.mostrarMensajeEstado("Modo JUEGO activado");
+                
+                if (canvas != null) {
+                    canvas.requestFocusInWindow();
+                    canvas.repaint(); // Forzar redibujado al entrar
+                }
+
+                if (editor != null) {
+                    editor.mostrarMensajeEstado("Modo JUEGO activado");
+                    editor.bloquearUI(true); // Bloquear edición
+                }
             } catch (Exception e) {
                 mostrarError("Error al iniciar modo juego", e.getMessage());
             }
@@ -537,10 +549,14 @@ public class EditorController {
         
         Engine.setPlaying(false);
         try {
-            // Recargar la escena para resetear posiciones y estados
+            // Recargar la escena original (antes de empezar a jugar)
             String sceneName = sceneManager.getCurrentScene().getName();
             sceneManager.loadScene(sceneName);
-            inicializarMotor(); // Re-inicializar para vincular la nueva instancia de la escena
+            inicializarMotor(); 
+            
+            if (canvas != null) {
+                canvas.repaint(); // Forzar redibujado al salir
+            }
             
             if (editor != null) {
                 editor.refrescarHierarchy();
@@ -548,6 +564,10 @@ public class EditorController {
             }
         } catch (Exception e) {
             mostrarError("Error al detener modo juego", e.getMessage());
+        } finally {
+            if (editor != null) {
+                editor.bloquearUI(false); // Desbloquear edición SIEMPRE
+            }
         }
     }
 }

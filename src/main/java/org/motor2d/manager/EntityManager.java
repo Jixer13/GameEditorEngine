@@ -194,10 +194,11 @@ public class EntityManager {
 
             } else if (component instanceof Animation a) {
                 Animation newA = new Animation();
-                newA.setName(a.getName());
-                newA.setFrames(new ArrayList<>(a.getFrames()));
+                newA.setSequences(new java.util.HashMap<>(a.getSequences()));
+                newA.setCurrentSequence(a.getCurrentSequence());
                 newA.setFrameDuration(a.getFrameDuration());
                 newA.setLooping(a.isLooping());
+                newA.setAutoPlay(a.isAutoPlay());
                 copy.addComponent(newA);
             }
         }
