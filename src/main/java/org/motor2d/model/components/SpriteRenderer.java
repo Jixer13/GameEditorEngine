@@ -37,4 +37,9 @@ public class SpriteRenderer extends Component {
 
     public boolean isFlipY() { return flipY; }
     public void setFlipY(boolean flipY) { this.flipY = flipY; }
-}
+
+    @Override
+    public void initialize() {
+        // SpriteRenderer no requiere inicialización adicional
+    }
+    }

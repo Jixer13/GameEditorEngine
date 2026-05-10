@@ -1,8 +1,11 @@
 package org.motor2d.physics;
 
+import org.motor2d.core.Engine;
 import org.motor2d.model.Entity;
 import org.motor2d.model.Scene;
+import org.motor2d.model.Tileset;
 import org.motor2d.model.components.Collider;
+import org.motor2d.model.components.TilemapLayer;
 import org.motor2d.model.components.Transform;
 import org.motor2d.core.Time;
 
@@ -22,13 +25,12 @@ public class PhysicsSystem {
         
         List<Entity> entities = scene.getEntities();
 
-        // Resolución de colisiones mediante doble bucle (Optimizable en el futuro)
+        // 1. Resolución de colisiones entre entidades
         for (int i = 0; i < entities.size(); i++) {
             for (int j = i + 1; j < entities.size(); j++) {
                 Entity a = entities.get(i);
                 Entity b = entities.get(j);
 
-                // Solo procesamos si ambas están activas y tienen los componentes necesarios
                 if (!a.isActive() || !b.isActive()) continue;
 
                 CollisionResult result = checkCollision(a, b);
@@ -37,12 +39,85 @@ public class PhysicsSystem {
                 }
             }
         }
+
+        // 2. Resolución de colisiones entre entidades y tiles
+        if (scene.getTilemap() != null) {
+            for (Entity entity : entities) {
+                if (!entity.isActive()) continue;
+                checkTileCollisions(entity, scene.getTilemap());
+            }
+        }
     }
 
-    /**
-     * Comprueba si dos entidades están colisionando usando sus cuadros delimitadores (AABB).
-     * Calcula el vector de separación mínima (MTV).
-     */
+    private void checkTileCollisions(Entity entity, org.motor2d.model.Tilemap tilemap) {
+        Collider collider = entity.getComponent(Collider.class);
+        Transform trans = entity.getComponent(Transform.class);
+        if (collider == null || trans == null) return;
+
+        // Determinar celdas ocupadas por la entidad
+        int startCol = tilemap.pixelToCol(trans.getX() + collider.getOffsetX());
+        int endCol = tilemap.pixelToCol(trans.getX() + collider.getOffsetX() + collider.getWidth());
+        int startRow = tilemap.pixelToRow(trans.getY() + collider.getOffsetY());
+        int endRow = tilemap.pixelToRow(trans.getY() + collider.getOffsetY() + collider.getHeight());
+
+        // Obtener acceso a tilesets para buscar los tiles
+        java.util.List<Tileset> tilesets = Engine.getProject().getTilesets();
+
+        for (int col = startCol; col <= endCol; col++) {
+            for (int row = startRow; row <= endRow; row++) {
+                for (TilemapLayer.LayerType layer : tilemap.getLayers().keySet()) {
+                    Integer tileId = tilemap.getTileIdAt(col, row, layer);
+                    if (tileId == null) continue;
+
+                    org.motor2d.model.Tile tile = null;
+                    for (org.motor2d.model.Tileset ts : tilesets) {
+                        tile = ts.getTileById(tileId);
+                        if (tile != null) break;
+                    }
+
+                    if (tile != null) {
+                        // Posición del tile en el mundo
+                        float tileX = col * tilemap.getTileWidth();
+                        float tileY = row * tilemap.getTileHeight();
+                        
+                        // AABB básica con el tile
+                        float entX = trans.getX() + collider.getOffsetX();
+                        float entY = trans.getY() + collider.getOffsetY();
+                        
+                        boolean collision = entX < tileX + tilemap.getTileWidth() &&
+                                           entX + collider.getWidth() > tileX &&
+                                           entY < tileY + tilemap.getTileHeight() &&
+                                           entY + collider.getHeight() > tileY;
+
+                        if (collision) {
+                            if (tile.isTrigger()) {
+                                // Notificar evento de trigger (puedes añadir un callback en el futuro)
+                                System.out.println("Trigger activado por tile: " + tile.getName());
+                            } else if (tile.isSolid()) {
+                                // Resolución básica: empujar fuera del tile
+                                float centerX = entX + collider.getWidth() / 2f;
+                                float centerY = entY + collider.getHeight() / 2f;
+                                float tileCenterX = tileX + tilemap.getTileWidth() / 2f;
+                                float tileCenterY = tileY + tilemap.getTileHeight() / 2f;
+                                
+                                float diffX = centerX - tileCenterX;
+                                float diffY = centerY - tileCenterY;
+                                
+                                if (Math.abs(diffX) > Math.abs(diffY)) {
+                                    if (diffX > 0) trans.setX(tileX + tilemap.getTileWidth() - collider.getOffsetX());
+                                    else trans.setX(tileX - collider.getWidth() - collider.getOffsetX());
+                                } else {
+                                    if (diffY > 0) trans.setY(tileY + tilemap.getTileHeight() - collider.getOffsetY());
+                                    else trans.setY(tileY - collider.getHeight() - collider.getOffsetY());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public CollisionResult checkCollision(Entity a, Entity b) {
         Collider colA = a.getComponent(Collider.class);
         Collider colB = b.getComponent(Collider.class);

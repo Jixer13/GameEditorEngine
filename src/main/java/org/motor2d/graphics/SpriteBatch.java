@@ -44,6 +44,8 @@ public class SpriteBatch {
             renderCall(call.image, call);
         }
         
+        // Limpiar el batch tras renderizar
+        drawCalls.clear();
         isDrawing = false;
     }
 

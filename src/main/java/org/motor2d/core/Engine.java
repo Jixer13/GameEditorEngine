@@ -19,6 +19,7 @@ public class Engine {
     private static InputManager inputManager;
     private static org.motor2d.manager.AudioManager audioManager;
     private static Scene currentScene;
+    private static Project project;
     private static boolean playing = false;
 
     // ==================== MÉTODOS DE INICIALIZACIÓN ====================
@@ -27,6 +28,7 @@ public class Engine {
      * Inicializa el motor vinculando el proyecto, la escena y el lienzo.
      */
     public static void init(Project project, Scene scene, JPanel canvas) {
+        Engine.project = project;
         currentScene = scene;
 
         // Limpiar estado de teclas para evitar que se queden pulsadas al reiniciar
@@ -98,5 +100,6 @@ public class Engine {
     
     public static Camara getCamara() { return camara; }
     public static org.motor2d.manager.AudioManager getAudioManager() { return audioManager; }
+    public static Project getProject() { return project; }
     public static Scene getCurrentScene() { return currentScene; }
 }

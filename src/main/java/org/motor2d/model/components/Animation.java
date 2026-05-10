@@ -1,5 +1,6 @@
 package org.motor2d.model.components;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +23,7 @@ public class Animation extends Component {
     private transient float frameTimer;
     private transient boolean playing;
 
+    @JsonCreator
     public Animation() {
         super();
         this.sequences     = new HashMap<>();
@@ -45,8 +47,13 @@ public class Animation extends Component {
         this.playing      = autoPlay;
     }
 
+    @Override
+    public void initialize() {
+        resetRuntime();
+    }
+
     // Control de reproducción
-    public void play(String sequenceName) {
+    public synchronized void play(String sequenceName) {
         if (sequences.containsKey(sequenceName)) {
             if (!sequenceName.equals(currentSequence) || !playing) {
                 this.currentSequence = sequenceName;
@@ -57,12 +64,12 @@ public class Animation extends Component {
         }
     }
 
-    public void stop() {
+    public synchronized void stop() {
         this.playing = false;
         this.currentFrame = 0;
     }
 
-    public void update(float deltaTime) {
+    public synchronized void update(float deltaTime) {
         if (!playing || sequences.isEmpty()) return;
 
         List<String> frames = sequences.get(currentSequence);
@@ -88,7 +95,7 @@ public class Animation extends Component {
         }
     }
 
-    public String getCurrentFramePath() {
+    public synchronized String getCurrentFramePath() {
         List<String> frames = sequences.get(currentSequence);
         if (frames == null || frames.isEmpty()) return "";
         if (currentFrame >= frames.size()) currentFrame = 0;

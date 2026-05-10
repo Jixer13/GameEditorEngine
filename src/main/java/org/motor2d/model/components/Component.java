@@ -34,6 +34,11 @@ public abstract class Component {
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
+    /**
+     * Método invocado tras la deserialización para inicializar estados transient.
+     */
+    public abstract void initialize();
+
     @JsonIgnore
     public Entity getOwner() { return owner; }
 

@@ -94,6 +94,14 @@ public class GameLoop implements Runnable {
                         for (Entity entity : scene.getEntities()) {
                             if (!entity.isActive()) continue;
                             
+                            // Aseguramos inicialización si no se ha hecho
+                            for (Component comp : entity.getComponents()) {
+                                if (comp.getOwner() == null) {
+                                    comp.setOwner(entity);
+                                    comp.initialize();
+                                }
+                            }
+
                             // Procesar Scripts/Comportamientos
                             for (Component comp : entity.getComponents()) {
                                 if (comp instanceof Behavior behavior && comp.isEnabled()) {

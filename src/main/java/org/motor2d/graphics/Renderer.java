@@ -86,15 +86,21 @@ public class Renderer {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
     // ==================== DIBUJADO DE ELEMENTOS ====================
 
     private void renderBackground(Graphics2D g2, Scene scene) {
-        if (scene.getBackgroundColor() == null) return;
-        g2.setColor(GameColor.fromHex(scene.getBackgroundColor()).toAwtColor());
+        // Borrar siempre todo el lienzo con negro para evitar basura visual
+        g2.setColor(java.awt.Color.BLACK);
         g2.fillRect(0, 0, camara.getViewWidth(), camara.getViewHeight());
+        
+        // Dibujar el color de fondo de la escena si existe
+        if (scene.getBackgroundColor() != null) {
+            g2.setColor(GameColor.fromHex(scene.getBackgroundColor()).toAwtColor());
+            g2.fillRect(0, 0, camara.getViewWidth(), camara.getViewHeight());
+        }
     }
 
     private void renderTilemapLayer(SpriteBatch batch, Tilemap tilemap,
@@ -121,15 +127,17 @@ public class Renderer {
             if (!camara.isVisible(worldX, worldY,
                     tilemap.getTileWidth(), tilemap.getTileHeight())) continue;
 
-            float screenX = camara.worldToScreenX(worldX);
-            float screenY = camara.worldToScreenY(worldY);
+            float screenX = Math.round(camara.worldToScreenX(worldX));
+            float screenY = Math.round(camara.worldToScreenY(worldY));
+            float drawW = (float) Math.ceil(tilemap.getTileWidth() * camara.getZoom());
+            float drawH = (float) Math.ceil(tilemap.getTileHeight() * camara.getZoom());
 
             try {
                 Sprite sprite = Sprite.load(projectPath, tile.getSpritePath());
                 batch.draw(sprite.getImage(),
                         screenX, screenY,
-                        tilemap.getTileWidth()  * camara.getZoom(),
-                        tilemap.getTileHeight() * camara.getZoom(),
+                        drawW,
+                        drawH,
                         0, 1, 1, layerOpacity);
             } catch (IOException e) {
                 // Para placeholders seguimos usando g2 directo o añadimos método a batch
@@ -187,8 +195,10 @@ public class Renderer {
                     1.0f);
 
         } catch (IOException e) {
-            renderPlaceholder(batch.getGraphics(), (int) screenX, (int) screenY,
+            Graphics2D g2Temp = (Graphics2D) batch.getGraphics().create();
+            renderPlaceholder(g2Temp, (int) screenX, (int) screenY,
                     sprite.getFrameWidth(), sprite.getFrameHeight());
+            g2Temp.dispose();
         }
     }
 

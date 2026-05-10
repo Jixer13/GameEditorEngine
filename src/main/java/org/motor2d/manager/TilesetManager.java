@@ -65,18 +65,27 @@ public class TilesetManager {
     // TILES — dentro de un tileset
 
     public Tile addTile(Tileset tileset, String tileName,
-                        String spritePath, boolean solid) throws IOException {
+                        String spritePath, boolean solid, boolean trigger) throws IOException {
         checkProjectOpen();
 
         Tile tile = new Tile();
         tile.setName(tileName);
         tile.setSpritePath(spritePath);
         tile.setSolid(solid);
+        tile.setTrigger(trigger);
 
         tileset.addTile(tile);
         projectManager.saveProject();
 
         return tile;
+    }
+
+    public void updateTile(Tileset tileset, Tile tile, String name, boolean solid, boolean trigger) throws IOException {
+        checkProjectOpen();
+        tile.setName(name);
+        tile.setSolid(solid);
+        tile.setTrigger(trigger);
+        projectManager.saveProject();
     }
 
     public void removeTile(Tileset tileset, Tile tile) throws IOException {

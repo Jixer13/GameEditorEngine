@@ -35,33 +35,43 @@ public class PlayerController extends Behavior {
 
         float dx = 0;
         float dy = 0;
-        String nextAnim = animIdle;
 
-        // --- MOVIMIENTO HORIZONTAL ---
+        // --- MOVIMIENTO ---
+        boolean movingHorizontal = false;
         if (isKeyDown(java.awt.event.KeyEvent.VK_A)) {
             dx -= speed;
             if (sprite != null) sprite.setFlipX(true);
-            nextAnim = animWalkSide;
+            movingHorizontal = true;
         }
         if (isKeyDown(java.awt.event.KeyEvent.VK_D)) {
             dx += speed;
             if (sprite != null) sprite.setFlipX(false);
-            nextAnim = animWalkSide;
+            movingHorizontal = true;
         }
-
-        // --- MOVIMIENTO VERTICAL ---
+        
+        boolean movingVertical = false;
         if (isKeyDown(java.awt.event.KeyEvent.VK_W)) {
             dy -= speed;
-            nextAnim = animWalkUp;
+            movingVertical = true;
         }
         if (isKeyDown(java.awt.event.KeyEvent.VK_S)) {
             dy += speed;
-            nextAnim = animWalkDown;
+            movingVertical = true;
         }
 
-        // --- SALTO ---
+        // --- SELECCIÓN DE ANIMACIÓN ---
+        String nextAnim;
         if (isKeyDown(java.awt.event.KeyEvent.VK_SPACE) && isGrounded) {
             nextAnim = animJump;
+        } else if (movingHorizontal || movingVertical) {
+            // Priorizar direcciones de movimiento
+            if (Math.abs(dy) > Math.abs(dx)) {
+                nextAnim = (dy > 0) ? animWalkDown : animWalkUp;
+            } else {
+                nextAnim = animWalkSide;
+            }
+        } else {
+            nextAnim = animIdle;
         }
 
         transform.setX(transform.getX() + dx * deltaTime);
@@ -69,16 +79,15 @@ public class PlayerController extends Behavior {
 
         // --- GESTIÓN DE ANIMACIONES ---
         if (anim != null) {
-            if (dx == 0 && dy == 0 && nextAnim.equals(animIdle)) {
-                anim.play(animIdle);
-            } else {
-                // Intentar reproducir la animación detectada
-                if (anim.getSequences().containsKey(nextAnim)) {
-                    anim.play(nextAnim);
-                } else {
-                    // Si no existe la específica, intentar usar la genérica "walk"
-                    anim.play("walk");
-                }
+            // Verificar si la secuencia solicitada existe
+            if (!anim.getSequences().containsKey(nextAnim)) {
+                nextAnim = "default";
+            }
+
+            if (!nextAnim.equals(anim.getCurrentSequence())) {
+                // Forzar bucle en animaciones de movimiento o salto
+                anim.setLooping(!nextAnim.equals("default"));
+                anim.play(nextAnim);
             }
         }
     }
@@ -104,5 +113,11 @@ public class PlayerController extends Behavior {
 
     public String getAnimJump() { return animJump; }
     public void setAnimJump(String animJump) { this.animJump = animJump; }
-}
 
+    @Override
+    public void initialize() {
+        super.initialize();
+        this.verticalVelocity = 0;
+        this.isGrounded = true;
+    }
+}

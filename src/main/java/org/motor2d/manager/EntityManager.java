@@ -199,6 +199,7 @@ public class EntityManager {
                 newA.setFrameDuration(a.getFrameDuration());
                 newA.setLooping(a.isLooping());
                 newA.setAutoPlay(a.isAutoPlay());
+                newA.resetRuntime(); // Limpiar estado al duplicar
                 copy.addComponent(newA);
             }
         }
@@ -220,6 +221,8 @@ public class EntityManager {
 
         if (component instanceof Transform t) {
             t.registerInSystem(sceneManager.getCurrentScene().getTransformSystem());
+        } else if (component instanceof Animation a) {
+            a.resetRuntime(); // Limpiar estado al añadir
         }
 
         entity.addComponent(component);

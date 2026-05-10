@@ -8,12 +8,14 @@ public class Tile {
     private String name;
     private String spritePath;
     private boolean solid;
+    private boolean trigger;
 
     public Tile() {
         this.id = nextId++;
         this.name = "Tile" + this.id;
         this.spritePath = "";
         this.solid = false;
+        this.trigger = false;
     }
 
     public static void resetIdCounter(int value) { nextId = value; }
@@ -32,4 +34,7 @@ public class Tile {
 
     public boolean isSolid() { return solid; }
     public void setSolid(boolean solid) { this.solid = solid; }
+
+    public boolean isTrigger() { return trigger; }
+    public void setTrigger(boolean trigger) { this.trigger = trigger; }
 }

@@ -128,6 +128,6 @@ public class InputManager implements KeyListener, MouseListener, MouseMotionList
 
     @Override
     public void focusLost(FocusEvent e) {
-        clearState();
+        // No hacer nada para evitar que el input se bloquee
     }
 }

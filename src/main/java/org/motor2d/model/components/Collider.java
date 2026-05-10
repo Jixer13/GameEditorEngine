@@ -53,4 +53,9 @@ public class Collider extends Component {
 
     public boolean isStatic() { return isStatic; }
     public void setStatic(boolean isStatic) { this.isStatic = isStatic; }
-}
+
+    @Override
+    public void initialize() {
+        // Collider no requiere inicialización adicional
+    }
+    }

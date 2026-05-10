@@ -104,4 +104,10 @@ public class Transform extends Component {
         this.rotation = rotation; 
         if (system != null && transformId != -1) system.setRotation(transformId, rotation);
     }
-}
+
+    @Override
+    public void initialize() {
+        // Transform no requiere inicialización de estado transient en runtime tras deserialización
+        // aparte de lo que ya maneja registerInSystem.
+    }
+    }

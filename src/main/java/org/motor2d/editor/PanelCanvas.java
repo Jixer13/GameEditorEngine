@@ -68,6 +68,14 @@ public class PanelCanvas extends JPanel {
         this.controller = controller;
     }
 
+    public void setModoSeleccion() {
+        this.modoPintura = false;
+        this.modoBorrado = false;
+        this.tileIdPincel = -1;
+        setCursor(Cursor.getDefaultCursor());
+        repaint();
+    }
+
     public void setModoPintura(boolean activo, int tileId) {
         this.modoPintura = activo;
         this.modoBorrado = false;

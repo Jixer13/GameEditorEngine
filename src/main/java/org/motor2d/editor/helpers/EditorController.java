@@ -211,7 +211,6 @@ public class EditorController {
             stopAudioPreview();
             sceneManager.closeScene();
             projectManager.closeProject();
-            Sprite.clearCache();
             Tile.resetIdCounter(0);
             if (editor != null) {
                 editor.actualizarTitulo();
@@ -329,7 +328,7 @@ public class EditorController {
                 current = tilesetManager.createTileset("Default Tileset", relativePath, 32, 32);
             }
             
-            tilesetManager.addTile(current, name, relativePath, false);
+            tilesetManager.addTile(current, name, relativePath, false, false);
             if (editor != null) {
                 editor.getPanelAssets().refrescarComboTilesets();
                 editor.getPanelAssets().mostrarPaleta(current);

@@ -51,4 +51,9 @@ public abstract class Behavior extends Component {
     protected void setCameraLerpSpeed(float speed) {
         Engine.getCamara().setLerpSpeed(speed);
     }
-}
+
+    @Override
+    public void initialize() {
+        this.started = false;
+    }
+    }

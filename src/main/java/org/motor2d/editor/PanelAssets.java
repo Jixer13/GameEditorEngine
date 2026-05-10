@@ -118,6 +118,10 @@ public class PanelAssets extends JPanel {
         if (comboTilesets != null) {
             comboTilesets.setVisible(false);
         }
+        // Limpiar modo dibujo al volver a vista de archivos
+        if (canvas != null) {
+            canvas.setModoSeleccion();
+        }
     }
 
     private void construirUI() {

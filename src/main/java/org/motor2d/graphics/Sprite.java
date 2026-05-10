@@ -41,10 +41,6 @@ public class Sprite {
 
         String fullPath = file.getAbsolutePath();
 
-        if (cache.containsKey(fullPath)) {
-            return new Sprite(fullPath, cache.get(fullPath));
-        }
-
         if (!file.exists()) {
             throw new IOException("No se encontró la imagen: " + fullPath);
         }
@@ -55,12 +51,8 @@ public class Sprite {
             throw new IOException("No se pudo leer la imagen: " + fullPath);
         }
 
-        cache.put(fullPath, image);
-
         return new Sprite(fullPath, image);
     }
-
-    public static void clearCache() { cache.clear(); }
 
     public BufferedImage getImage() { return image; }
     public String getPath()         { return path;  }
